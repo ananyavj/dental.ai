@@ -3,6 +3,8 @@ from ultralytics import YOLO
 from PIL import Image
 import io
 import uvicorn
+import cv2
+from google.colab.patches import cv2_imshow
 
 app = FastAPI()
 model = YOLO("/model/best.pt")
@@ -14,7 +16,19 @@ async def predict(file: UploadFile = File(...)):
     image = Image.open(io.BytesIO(contents))
 
     # 2. Run the model
-    results = model(image)
+    results = model.predict(source=image, conf=0.25,save=True)
+
+    res_image_path = f"{results[0].save_dir}/{results[0].path}"
+    annotated_img = cv2.imread(res_image_path)
+    cv2_imshow(annotated_img)
+
+    for r in results:
+        im_array = r.plot() # Plot the boxes on the image
+        cv2_imshow(im_array)
+
+        for box in r.boxes:
+            cls_id = int(box.cls[0])
+            label = model.names[cls_id]
     
     # 3. Extract data to send back as JSON
     detections = []
