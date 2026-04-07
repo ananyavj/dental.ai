@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import { runClinicalPathway, followUpChat } from '../lib/gemini'
-import { MOCK_CASES, logAuditEntry } from '../lib/data'
+import { logAuditEntry } from '../lib/data'
+import { useAuth } from '../App'
+import { supabase } from '../supabase'
 import {
   AlertTriangle, ChevronDown, ChevronUp, Send, Mic, MicOff,
   User, ExternalLink, Plus, Clock, CheckCircle, AlertCircle,
@@ -566,6 +568,7 @@ function FollowUpChat({ pathway, messages, onSend, loading }) {
 
 // ── Main Dashboard ─────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const { user } = useAuth()
   const [currentCase, setCurrentCase] = useState(null)
   const [pathway, setPathway] = useState(null)
   const [agentStatus, setAgentStatus] = useState({})
@@ -573,7 +576,37 @@ export default function Dashboard() {
   const [error, setError] = useState(null)
   const [chatMessages, setChatMessages] = useState([])
   const [chatLoading, setChatLoading] = useState(false)
+  const [recentCases, setRecentCases] = useState([])
   const centerRef = useRef(null)
+
+  useEffect(() => {
+    if (user) {
+      loadRecentCases()
+    }
+  }, [user])
+
+  const loadRecentCases = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('peer_cases')
+        .select('*')
+        .eq('author_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      
+      if (error) throw error
+      // Map to UI names
+      setRecentCases(data.map(c => ({
+        id: c.id,
+        patientName: c.title,
+        chiefComplaint: c.clinical_data,
+        severity: 'ROUTINE', // Default or fetch if exists
+        timestamp: c.created_at
+      })))
+    } catch (err) {
+      console.error('Error loading recent cases:', err)
+    }
+  }
 
   const handleNewCase = async (form) => {
     setLoading(true)
@@ -735,7 +768,7 @@ export default function Dashboard() {
         {/* Right Panel */}
         <RightPanel
           pathway={pathway}
-          cases={MOCK_CASES.slice(0, 4)}
+          cases={recentCases}
           onQuickAction={handleQuickAction}
         />
       </div>

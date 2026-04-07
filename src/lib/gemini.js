@@ -123,13 +123,15 @@ Respond like a senior oral physician. Always consider systemic connections and b
 
 // ─── Core API Functions ────────────────────────────────────────────────────────
 
+const GEMINI_MODEL = 'gemini-2.0-flash'
+
 async function callGemini(systemPrompt, userContent) {
   const client = getClient()
   if (!client) {
     throw new Error('GEMINI_KEY_MISSING')
   }
   const model = client.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: GEMINI_MODEL,
     systemInstruction: systemPrompt,
     generationConfig: {
       temperature: 0.2,
@@ -235,7 +237,7 @@ export async function specialtyChat(specialtyName, messages, newMessage) {
   const systemPrompt = SPECIALTY_PROMPTS[specialtyName] || SPECIALTY_PROMPTS['Endo.ai']
   
   const model = client.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: GEMINI_MODEL,
     systemInstruction: systemPrompt,
     generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
   })
@@ -262,7 +264,7 @@ Active pathway context:
 ${JSON.stringify(pathway, null, 2)}`
 
   const model = client.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: GEMINI_MODEL,
     systemInstruction: systemPrompt,
     generationConfig: { temperature: 0.3, maxOutputTokens: 1024 }
   })
@@ -308,7 +310,7 @@ Planned dental prescription: ${plannedPrescription}
 Respond ONLY with valid JSON.`
 
   const model = client.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: GEMINI_MODEL,
     generationConfig: { temperature: 0.1, maxOutputTokens: 1024 }
   })
   const result = await model.generateContent(prompt)
@@ -321,7 +323,7 @@ export async function analyzeXray(imageBase64, mimeType) {
   const client = getClient()
   if (!client) throw new Error('GEMINI_KEY_MISSING')
 
-  const model = client.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const model = client.getGenerativeModel({ model: GEMINI_MODEL })
 
   const prompt = `You are a dental radiograph expert. Analyze this dental X-ray (IOPA/OPG) and provide a structured report.
 
@@ -375,7 +377,7 @@ Output ONLY valid JSON:
 Case data: ${JSON.stringify(caseData)}`
 
   const model = client.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: GEMINI_MODEL,
     generationConfig: { temperature: 0.4, maxOutputTokens: 1024 }
   })
   const result = await model.generateContent(prompt)
@@ -411,7 +413,7 @@ Output ONLY valid JSON:
 Patient data: ${JSON.stringify(inputData)}`
 
   const model = client.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: GEMINI_MODEL,
     generationConfig: { temperature: 0.3, maxOutputTokens: 2048 }
   })
   const result = await model.generateContent(prompt)

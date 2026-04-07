@@ -4,6 +4,8 @@ import { MOCK_ARTICLES } from '../lib/data'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { Search, Filter, BookOpen, TrendingUp, Calendar, ExternalLink, Loader2, ChevronRight } from 'lucide-react'
 
+const GEMINI_MODEL = 'gemini-2.0-flash'
+
 const TYPE_STYLES = {
   'Research': 'bg-blue-100 text-blue-700',
   'Guidelines': 'bg-green-100 text-green-700',
@@ -50,7 +52,7 @@ export default function DiscoverDental() {
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY
       if (!apiKey || apiKey === 'your_gemini_api_key_here') throw new Error('GEMINI_KEY_MISSING')
       const genAI = new GoogleGenerativeAI(apiKey)
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+      const model = genAI.getGenerativeModel({ model: GEMINI_MODEL })
       const prompt = `You are a senior dental clinician performing a structured critical appraisal of a research paper. Given the title, DOI, or abstract, provide a structured review.
 
 Article/Abstract: "${reviewInput}"

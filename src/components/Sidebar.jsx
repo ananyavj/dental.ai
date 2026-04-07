@@ -3,9 +3,12 @@ import {
   Activity, Users, Image, Pill, BookOpen, FileText,
   Send, ClipboardList, AlertTriangle, Calendar,
   Tv, Shield, MessageSquare, ChevronLeft, ChevronRight,
+  ShieldCheck, LogOut, FlaskConical
 } from 'lucide-react'
-import { DUMMY_USER } from '../lib/data'
-import { useState } from 'react'
+import { fetchUserProfile } from '../lib/data'
+import { useState, useEffect } from 'react'
+import { useAuth } from '../App'
+import { supabase } from '../supabase'
 
 const NAV_ITEMS = [
   { label: 'Clinical Pathway', icon: Activity, path: '/workspace', badge: null },
@@ -14,6 +17,7 @@ const NAV_ITEMS = [
   { label: 'X-ray Analysis', icon: Image, path: '/xray', badge: null },
   { label: 'Drug Reference', icon: Pill, path: '/drugs', badge: null },
   { label: 'Evidence Search', icon: BookOpen, path: '/discover', badge: null },
+  { label: 'Research Hub', icon: FlaskConical, path: '/research', badge: null },
   { label: 'Protocol Library', icon: FileText, path: '/discover', badge: null },
   { label: 'Referral Builder', icon: Send, path: '/referral', badge: null },
   { label: 'Treatment Plan', icon: ClipboardList, path: '/treatment-plan', badge: null },
@@ -30,6 +34,25 @@ const BOTTOM_NAV = [
 export default function Sidebar({ collapsed, onToggle }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuth()
+  const [profile, setProfile] = useState(null)
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile(user.id)
+        .then(setProfile)
+        .catch(err => console.error('Error fetching profile:', err))
+    }
+  }, [user])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    navigate('/auth')
+  }
+
+  const initials = profile?.name 
+    ? profile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+    : user?.email?.slice(0, 2).toUpperCase() || '??'
 
   return (
     <aside
@@ -131,30 +154,46 @@ export default function Sidebar({ collapsed, onToggle }) {
         ))}
       </div>
 
-      {/* Stat Cards */}
-      {!collapsed && (
-        <div className="px-3 pb-4 space-y-2">
-          <div className="bg-dental-surface rounded-lg p-2.5">
-            <p className="text-[10px] text-dental-text-secondary mb-0.5">Cases this week</p>
-            <p className="text-lg font-bold text-dental-text">{DUMMY_USER.casesThisWeek}</p>
+      {/* User Avatar & Info */}
+      <div className={`mt-auto border-t border-dental-border p-3 ${collapsed ? 'flex flex-col items-center gap-3' : 'space-y-3'}`}>
+        <div className={`flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
+          <div className="w-8 h-8 bg-[#1a5fa8] rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border border-blue-100">
+            <span className="text-white text-xs font-bold">{initials}</span>
           </div>
-          <div className="bg-dental-blue-light rounded-lg p-2.5">
-            <p className="text-[10px] text-dental-blue mb-0.5">Pathways generated</p>
-            <p className="text-lg font-bold text-dental-blue">{DUMMY_USER.pathwaysGenerated}</p>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1">
+                <p className="text-xs font-semibold text-slate-900 truncate">
+                  {profile?.name || 'Dr. Practitioner'}
+                </p>
+                {profile?.is_verified && (
+                  <ShieldCheck size={12} className="text-amber-500 fill-amber-50 flex-shrink-0" title="Verified Practitioner" />
+                )}
+              </div>
+              <p className="text-[10px] text-slate-500 truncate leading-tight">
+                {profile?.specialty || 'Dental Specialist'}
+              </p>
+            </div>
+          )}
         </div>
-      )}
 
-      {/* User Avatar */}
-      <div className={`border-t border-dental-border p-3 flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="w-7 h-7 bg-dental-blue rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-xs font-semibold">{DUMMY_USER.initials}</span>
-        </div>
         {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-dental-text truncate">{DUMMY_USER.name}</p>
-            <p className="text-[10px] text-dental-text-secondary truncate">Pro Plan</p>
-          </div>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 border border-transparent hover:border-red-100 transition-all group"
+          >
+            <LogOut size={12} className="group-hover:translate-x-0.5 transition-transform" />
+            Sign Out
+          </button>
+        )}
+        {collapsed && (
+          <button 
+            onClick={handleLogout}
+            title="Sign Out"
+            className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <LogOut size={14} />
+          </button>
         )}
       </div>
     </aside>

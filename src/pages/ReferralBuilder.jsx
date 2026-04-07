@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import AppLayout from '../components/AppLayout'
 import { generateReferralLetter } from '../lib/gemini'
-import { DUMMY_USER } from '../lib/data'
+import { fetchUserProfile } from '../lib/data'
+import { useAuth } from '../App'
 import { FileText, Download, Loader2, Edit2, CheckCircle, AlertTriangle } from 'lucide-react'
 
 export default function ReferralBuilder() {
+  const { user } = useAuth()
   const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
   
   const [form, setForm] = useState({
@@ -12,10 +14,10 @@ export default function ReferralBuilder() {
     patientAge: '',
     patientSex: 'Male',
     referralDate: today,
-    referringDoctor: DUMMY_USER.name,
-    referringClinic: DUMMY_USER.clinic,
-    referringQualification: DUMMY_USER.qualification,
-    referringRegNumber: DUMMY_USER.registrationNumber,
+    referringDoctor: '',
+    referringClinic: 'Dental.ai Verified Clinic',
+    referringQualification: '',
+    referringRegNumber: '',
     toSpecialty: '',
     chiefComplaint: '',
     clinicalFindings: '',
@@ -24,6 +26,21 @@ export default function ReferralBuilder() {
     reasonForReferral: '',
     requestedManagement: '',
   })
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile(user.id).then(profile => {
+        if (profile) {
+          setForm(f => ({
+            ...f,
+            referringDoctor: profile.name || '',
+            referringRegNumber: profile.registration_number || '',
+            referringQualification: profile.specialty || '', // Using specialty as qualification for now
+          }))
+        }
+      })
+    }
+  }, [user])
 
   const [letter, setLetter] = useState(null)
   const [editedLetter, setEditedLetter] = useState(null)
