@@ -6,8 +6,8 @@ import { Mic, MicOff, Send, Loader2, ChevronRight } from 'lucide-react'
 
 const SPECIALTIES = [
   {
-    id: 'Endo.ai',
-    label: 'Endo.ai',
+    id: 'Endodontics',
+    label: 'Endodontics',
     fullName: 'Endodontics',
     desc: 'RCT, pulp biology, rotary systems, retreatment',
     icon: '🦷',
@@ -15,8 +15,8 @@ const SPECIALTIES = [
     activeColor: 'bg-dental-blue border-dental-blue text-white',
   },
   {
-    id: 'Perio.ai',
-    label: 'Perio.ai',
+    id: 'Periodontics',
+    label: 'Periodontics',
     fullName: 'Periodontics',
     desc: 'Periodontitis staging, SRP, bone grafts, peri-implantitis',
     icon: '🔬',
@@ -24,8 +24,8 @@ const SPECIALTIES = [
     activeColor: 'bg-green-600 border-green-600 text-white',
   },
   {
-    id: 'Implant.ai',
-    label: 'Implant.ai',
+    id: 'Implantology',
+    label: 'Implantology',
     fullName: 'Implantology',
     desc: 'Placement protocols, bone augmentation, sinus lift',
     icon: '⚙️',
@@ -33,8 +33,8 @@ const SPECIALTIES = [
     activeColor: 'bg-purple-600 border-purple-600 text-white',
   },
   {
-    id: 'OralSurg.ai',
-    label: 'OralSurg.ai',
+    id: 'OralSurgery',
+    label: 'Oral Surgery',
     fullName: 'Oral Surgery',
     desc: 'Extractions, impactions, facial space infections',
     icon: '🔪',
@@ -42,8 +42,8 @@ const SPECIALTIES = [
     activeColor: 'bg-red-600 border-red-600 text-white',
   },
   {
-    id: 'OrthoD.ai',
-    label: 'OrthoD.ai',
+    id: 'Orthodontics',
+    label: 'Orthodontics',
     fullName: 'Orthodontics',
     desc: 'Cephalometrics, appliance selection, aligner therapy',
     icon: '📐',
@@ -51,8 +51,8 @@ const SPECIALTIES = [
     activeColor: 'bg-indigo-600 border-indigo-600 text-white',
   },
   {
-    id: 'Pedo.ai',
-    label: 'Pedo.ai',
+    id: 'Paediatric',
+    label: 'Paediatric',
     fullName: 'Paediatric Dentistry',
     desc: 'Behaviour management, pulpotomy, space maintainers',
     icon: '👶',
@@ -60,8 +60,8 @@ const SPECIALTIES = [
     activeColor: 'bg-yellow-500 border-yellow-500 text-white',
   },
   {
-    id: 'Prostho.ai',
-    label: 'Prostho.ai',
+    id: 'Prosthodontics',
+    label: 'Prosthodontics',
     fullName: 'Prosthodontics',
     desc: 'Crowns, RPD, complete dentures, digital workflow',
     icon: '👑',
@@ -69,8 +69,8 @@ const SPECIALTIES = [
     activeColor: 'bg-orange-500 border-orange-500 text-white',
   },
   {
-    id: 'OralMed.ai',
-    label: 'OralMed.ai',
+    id: 'OralMedicine',
+    label: 'Oral Medicine',
     fullName: 'Oral Medicine',
     desc: 'Mucosal lesions, PMDs, orofacial pain, TMJ',
     icon: '🩺',
@@ -245,9 +245,9 @@ export default function SpecialtyAIs() {
       <div className="flex-1 overflow-y-auto p-5 space-y-5">
         {/* Header */}
         <div>
-          <h1 className="text-lg font-bold text-dental-text">Specialty AIs</h1>
+          <h1 className="text-lg font-bold text-dental-text">Clinical Specialists</h1>
           <p className="text-xs text-dental-text-secondary mt-0.5">
-            Eight named AI specialists, each primed on specialty-specific evidence and protocols
+            Eight named clinical assistants, each primed on specialty-specific evidence and protocols
           </p>
         </div>
 
@@ -274,10 +274,10 @@ export default function SpecialtyAIs() {
         ) : (
           <div className="bg-white border border-dental-border rounded-xl p-10 text-center">
             <p className="text-dental-text-secondary text-sm">
-              Select a specialty AI above to begin a clinical conversation
+              Select a clinical specialist above to begin a consultation
             </p>
             <p className="text-xs text-dental-text-secondary mt-1">
-              Each AI is primed on specialty-specific guidelines, protocols and clinical reasoning
+              Each assistant is primed on specialty-specific guidelines, protocols and clinical reasoning
             </p>
           </div>
         )}

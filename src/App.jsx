@@ -2,7 +2,7 @@ import { useState, useEffect, createContext, useContext } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from './supabase'
 import Dashboard from './pages/Dashboard'
-import SpecialtyAIs from './pages/SpecialtyAIs'
+import Specialties from './pages/Specialties'
 import XrayAnalysis from './pages/XrayAnalysis'
 import DrugReference from './pages/DrugReference'
 import DentalTV from './pages/DentalTV'
@@ -68,7 +68,7 @@ function AuthProvider({ children }) {
           <div className="mt-6 flex items-start gap-2 bg-dental-blue-light/50 p-3 rounded-xl border border-dental-blue/10">
             <div className="text-dental-blue mt-0.5">⚠️</div>
             <p className="text-[10px] text-dental-blue font-medium leading-relaxed italic">
-              "Dental.ai requires verified auth for clinical data privacy. No guest mode is allowed in Phase 2."
+              "The Dental Hub requires verified auth for clinical data privacy. No guest mode is allowed in Phase 2."
             </p>
           </div>
         </div>

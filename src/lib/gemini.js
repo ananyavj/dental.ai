@@ -85,6 +85,22 @@ Output ONLY valid JSON with this exact structure:
 
 Respond ONLY with valid JSON.`
 
+const PRIVACY_SANITIZER_PROMPT = `You are the Privacy & Clinical Anonymization Agent for a professional dental network (Clinic OS). 
+Your task is to strip all Personally Identifiable Information (PII) from clinical case summaries to ensure patient privacy.
+
+REPLACE:
+- Patient Names (e.g. "John Doe") -> "[Patient]"
+- Phone numbers, specific addresses, email addresses -> "[De-identified]"
+- Specific non-clinical dates (e.g. "Tuesday Oct 5th") -> "[Date]"
+- Unusual unique identifiers.
+
+PRESERVE:
+- Clinical findings, dental history, radiographic observations.
+- Age (e.g. "45-year-old male").
+- General region if relevant (e.g. "Mumbai clinic").
+
+Output ONLY the cleaned, professional summary text. Do not provide explanations or markdown.`
+
 // ─── Specialty System Prompts ───────────────────────────────────────────────
 
 export const SPECIALTY_PROMPTS = {
@@ -418,6 +434,11 @@ Patient data: ${JSON.stringify(inputData)}`
   })
   const result = await model.generateContent(prompt)
   return parseJSON(result.response.text())
+}
+
+export async function sanitizeClinicalCase(rawContent) {
+  const result = await callGemini(PRIVACY_SANITIZER_PROMPT, rawContent)
+  return result.trim()
 }
 
 export { API_KEY }

@@ -3,7 +3,7 @@ import AppLayout from '../components/AppLayout'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import {
   Search, Loader2, BookOpen, Tag, ChevronDown, ChevronUp,
-  Sparkles, ExternalLink, FileText, Hash, RefreshCw, X
+  ExternalLink, FileText, Hash, RefreshCw, X
 } from 'lucide-react'
 
 const GEMINI_MODEL = 'gemini-2.0-flash'
@@ -456,8 +456,8 @@ export default function ResearchHub() {
     <AppLayout>
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className="bg-white border-b border-dental-border px-5 py-3">
-          <h1 className="text-sm font-bold text-dental-text">Research Hub</h1>
-          <p className="text-xs text-dental-text-secondary">Clinical research paper retrieval with evidence-based summaries</p>
+          <h1 className="text-sm font-bold text-dental-text">Clinical Research Hub</h1>
+          <p className="text-xs text-dental-text-secondary">Professional research paper retrieval with evidence-based summaries</p>
         </div>
 
         <div className="flex-1 overflow-hidden flex">

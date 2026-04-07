@@ -12,6 +12,7 @@ import {
   fetchCases, createCase, deleteCase, endorseCase, unendorseCase,
   checkUserEndorsement, fetchComments, addComment
 } from '../lib/data'
+import { sanitizeClinicalCase } from '../lib/gemini'
 
 // ── Comment Thread Component ──────────────────────────────────────────────────
 function CommentThread({ caseId, isOpen, onClose }) {
@@ -331,7 +332,7 @@ export default function PeerReview() {
               <h1 className="text-lg font-bold text-slate-900 tracking-tight">Peer Review Feed</h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <CheckCircle2 size={12} className="text-green-500" />
-                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Anonymised Case Discussion Hub</p>
+                <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Clinical Case Discussion Hub</p>
               </div>
             </div>
           </div>
@@ -471,8 +472,14 @@ function PostCaseModal({ isOpen, onClose, onSuccess, user }) {
         imageUrl = publicUrl
       }
 
+      // Step 1: Automated Privacy Sanitization
+      const sanitizedClinicalData = await sanitizeClinicalCase(form.clinical_data)
+      const sanitizedTitle = await sanitizeClinicalCase(form.title)
+
       await createCase({
         ...form,
+        title: sanitizedTitle,
+        clinical_data: sanitizedClinicalData,
         author_id: user.id,
         image_url: imageUrl
       })
@@ -602,7 +609,7 @@ function PostCaseModal({ isOpen, onClose, onSuccess, user }) {
             onClick={handleSubmit} 
             className="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-lg shadow-blue-200 hover:bg-blue-700 disabled:opacity-50 transition-all flex justify-center items-center gap-2"
           >
-            {loading ? <><Loader2 size={16} className="animate-spin" /> Publishing Case...</> : 'Publish to Feed'}
+            {loading ? <><Loader2 size={16} className="animate-spin" /> {image ? 'Uploading...' : 'Privacy Sanitizing...'}</> : 'Publish Sanitized Case'}
           </button>
         </div>
       </div>

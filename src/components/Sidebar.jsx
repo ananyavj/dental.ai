@@ -13,7 +13,7 @@ import { supabase } from '../supabase'
 const NAV_ITEMS = [
   { label: 'Clinical Pathway', icon: Activity, path: '/workspace', badge: null },
   { label: 'Patient Cases', icon: Users, path: '/cases', badge: null },
-  { label: 'Specialty AIs', icon: MessageSquare, path: '/specialty-ais', badge: null },
+  { label: 'Clinical Assistants', icon: MessageSquare, path: '/specialty-ais', badge: null },
   { label: 'X-ray Analysis', icon: Image, path: '/xray', badge: null },
   { label: 'Drug Reference', icon: Pill, path: '/drugs', badge: null },
   { label: 'Evidence Search', icon: BookOpen, path: '/discover', badge: null },
@@ -69,7 +69,7 @@ export default function Sidebar({ collapsed, onToggle }) {
             <div className="w-7 h-7 bg-dental-blue rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xs font-bold">D</span>
             </div>
-            <span className="font-bold text-dental-text text-sm tracking-tight">Dental<span className="text-dental-blue">.ai</span></span>
+            <span className="font-bold text-dental-text text-sm tracking-tight">Dental Hub</span>
           </div>
         )}
         {collapsed && (

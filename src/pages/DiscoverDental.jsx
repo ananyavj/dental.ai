@@ -18,11 +18,11 @@ const TYPE_STYLES = {
 const FILTERS = ['All', 'Research', 'Guidelines', 'Material Review', 'Technique Update', 'Case Report']
 
 const TRENDING = [
-  { topic: 'AI in dental imaging', change: '+34%' },
+  { topic: 'Digital dental imaging', change: '+34%' },
   { topic: 'Peri-implantitis management', change: '+28%' },
   { topic: 'Digital smile design', change: '+21%' },
   { topic: 'Immediate implant loading', change: '+17%' },
-  { topic: 'Oral cancer screening AI', change: '+45%' },
+  { topic: 'Oral cancer screening technologies', change: '+45%' },
 ]
 
 const CONFERENCES = [
@@ -130,7 +130,7 @@ Be concise and clinically focused.`
                       onClick={() => { setReviewMode(true); setReviewInput(article.title + (article.doi ? ` DOI: ${article.doi}` : '')) }}
                       className="btn-secondary text-[10px] py-1 px-2.5"
                     >
-                      AI Review
+                      Clinical Review
                     </button>
                     {article.doi && (
                       <a href={`https://doi.org/${article.doi}`} target="_blank" rel="noreferrer" className="text-[10px] text-dental-blue flex items-center gap-1 hover:underline">
