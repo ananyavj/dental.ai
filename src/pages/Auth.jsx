@@ -89,14 +89,14 @@ const Auth = () => {
             <Activity className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-            dental<span className="text-[#1a5fa8]">.ai</span>
+            Dental<span className="text-[#1a5fa8]"> Hub</span>
           </h1>
         </div>
         <h2 className="text-center text-2xl font-semibold text-slate-800">
           {isSignUp ? 'Join the Professional Network' : 'Welcome Back, Doctor'}
         </h2>
         <p className="mt-2 text-center text-sm text-slate-500">
-          Clinical AI for verified practitioners
+          Clinical Decision Support for verified practitioners
         </p>
       </div>
 
@@ -225,7 +225,7 @@ const Auth = () => {
               </div>
               <div className="relative flex justify-center text-sm">
                 <span className="px-2 bg-white text-slate-500">
-                  {isSignUp ? 'Already have an account?' : 'New to dental.ai?'}
+                  {isSignUp ? 'Already have an account?' : 'New to Dental Hub?'}
                 </span>
               </div>
             </div>

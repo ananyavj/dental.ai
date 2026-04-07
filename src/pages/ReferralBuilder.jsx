@@ -15,7 +15,7 @@ export default function ReferralBuilder() {
     patientSex: 'Male',
     referralDate: today,
     referringDoctor: '',
-    referringClinic: 'Dental.ai Verified Clinic',
+    referringClinic: 'Dental Hub Verified Clinic',
     referringQualification: '',
     referringRegNumber: '',
     toSpecialty: '',

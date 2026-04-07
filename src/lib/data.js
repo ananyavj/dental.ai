@@ -213,56 +213,56 @@ export const DENTAL_DRUGS = [
 ];
 
 export const SPECIALTY_QUICK_PROMPTS = {
-  'Endo.ai': [
+  'Endodontics': [
     'What are the irrigant protocol steps for a necrotic tooth?',
     'How do I handle a separated file in the apical third?',
     'When is single-visit RCT contraindicated?',
     'What is the difference between MTA and Biodentine for pulpotomy?',
     'How do I classify and manage a missed canal (Vertucci)?',
   ],
-  'Perio.ai': [
+  'Periodontics': [
     'How do I stage and grade a new periodontitis case?',
     'What is the protocol for full-mouth disinfection?',
     'When should I extract vs preserve a tooth with severe periodontitis?',
     'What are the risk factors for peri-implantitis?',
     'How do I manage a patient on bisphosphonates needing extraction?',
   ],
-  'Implant.ai': [
+  'Implantology': [
     'What are the contraindications for immediate implant placement?',
     'How do I plan a sinus lift — lateral vs crestal approach?',
     'What causes early implant failure and how do I manage it?',
     'When is immediate loading appropriate vs delayed?',
     'How much bone volume do I need for a standard implant?',
   ],
-  'OralSurg.ai': [
+  'OralSurgery': [
     'What is the classification and surgical approach for a 4D lower third molar?',
     'How do I manage Ludwig\'s angina in the clinic before referral?',
     'What are the steps for a periapical curettage?',
     'How do I differentiate a radicular cyst from a dentigerous cyst?',
     'What are the stages of dry socket and management?',
   ],
-  'OrthoD.ai': [
+  'Orthodontics': [
     'How do I interpret an ANB angle and Wits appraisal?',
     'When do I extract premolars vs expand the arch?',
     'What are the clinical signs of skeletal Class III vs dental Class III?',
     'How do I decide between fixed braces and clear aligners?',
     'What is the retention protocol post-orthodontic treatment?',
   ],
-  'Pedo.ai': [
+  'Paediatric': [
     'What are the indications for pulpotomy vs pulpectomy in primary molars?',
     'How do I manage a traumatically avulsed permanent incisor in a 9-year-old?',
     'Which space maintainer do I use for a prematurely lost lower first primary molar?',
     'What is the maximum safe fluoride dose for a 5-year-old?',
     'How do I manage a very anxious 4-year-old who won\'t open their mouth?',
   ],
-  'Prostho.ai': [
+  'Prosthodontics': [
     'How do I choose between zirconia and lithium disilicate for a upper anterior crown?',
     'What are the Kennedy classification and design principles for RPD?',
     'How do I record centric relation for complete dentures?',
     'What preparation depth and margin design for a lithium disilicate crown?',
     'How do I troubleshoot a patient with sore spots in a new complete denture?',
   ],
-  'OralMed.ai': [
+  'OralMedicine': [
     'How do I differentiate between leukoplakia, oral submucous fibrosis, and lichen planus clinically?',
     'When must I biopsy an oral lesion and what biopsy type?',
     'How do I manage a patient with symptomatic oral lichen planus?',
