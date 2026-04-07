@@ -67,6 +67,8 @@ From the project root:
 ```bash
 npm install
 npm run dev
+
+go to backend ->create a venv ->install requirements.txt -> uvicorn app.main:app --reload --port 8000
 ```
 
 Open the Vite URL printed in the terminal, usually `http://localhost:5173`.
