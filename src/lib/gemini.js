@@ -228,11 +228,12 @@ Evidence: ${JSON.stringify(evidenceResult)}
 
 // ─── Specialty AI Chat ─────────────────────────────────────────────────────────
 
-export async function specialtyChat(specialtyName, messages, newMessage) {
+export async function specialtyChat(specialtyName, messages, newMessage, customSystemPrompt) {
   const client = getClient()
   if (!client) throw new Error('GEMINI_KEY_MISSING')
 
-  const systemPrompt = SPECIALTY_PROMPTS[specialtyName] || SPECIALTY_PROMPTS['Endo.ai']
+  // Use customSystemPrompt if provided (for Student/Patient modes), else use specialty prompt
+  const systemPrompt = customSystemPrompt || SPECIALTY_PROMPTS[specialtyName] || SPECIALTY_PROMPTS['Endo.ai']
   
   const model = client.getGenerativeModel({
     model: 'gemini-1.5-flash',

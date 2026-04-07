@@ -1,162 +1,128 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion as Motion } from 'framer-motion'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
-  Activity, Users, Image, Pill, BookOpen, FileText,
-  Send, ClipboardList, AlertTriangle, Calendar,
-  Tv, Shield, MessageSquare, ChevronLeft, ChevronRight,
+  ChevronLeft,
+  ChevronRight,
+  Compass,
+  GraduationCap,
+  LayoutDashboard,
+  LogOut,
+  MessageSquare,
+  Play,
+  Settings,
+  User,
+  Users,
+  Wrench,
 } from 'lucide-react'
-import { DUMMY_USER } from '../lib/data'
-import { useState } from 'react'
+import toast from 'react-hot-toast'
+import { useAuth } from '../contexts/AuthContext'
 
-const NAV_ITEMS = [
-  { label: 'Clinical Pathway', icon: Activity, path: '/workspace', badge: null },
-  { label: 'Patient Cases', icon: Users, path: '/cases', badge: null },
-  { label: 'Specialty AIs', icon: MessageSquare, path: '/specialty-ais', badge: null },
-  { label: 'X-ray Analysis', icon: Image, path: '/xray', badge: null },
-  { label: 'Drug Reference', icon: Pill, path: '/drugs', badge: null },
-  { label: 'Evidence Search', icon: BookOpen, path: '/discover', badge: null },
-  { label: 'Protocol Library', icon: FileText, path: '/discover', badge: null },
-  { label: 'Referral Builder', icon: Send, path: '/referral', badge: null },
-  { label: 'Treatment Plan', icon: ClipboardList, path: '/treatment-plan', badge: null },
-  { label: 'Urgent Cases', icon: AlertTriangle, path: '/cases', badge: '2', badgeColor: 'bg-red-500' },
-  { label: "Today's Schedule", icon: Calendar, path: '/cases', badge: null },
-]
+const NAV = {
+  doctor: [
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { label: 'AI Chat', icon: MessageSquare, path: '/chat', accent: true },
+    { label: 'Patients', icon: Users, path: '/patients' },
+    { label: 'Discover', icon: Compass, path: '/discover' },
+    { label: 'Dental TV', icon: Play, path: '/dental-tv' },
+    { label: 'Tools', icon: Wrench, path: '/tools' },
+    { label: 'Settings', icon: Settings, path: '/settings' },
+  ],
+  student: [
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { label: 'AI Chat', icon: MessageSquare, path: '/chat', accent: true },
+    { label: 'Exam Mode', icon: GraduationCap, path: '/exam' },
+    { label: 'Discover', icon: Compass, path: '/discover' },
+    { label: 'Dental TV', icon: Play, path: '/dental-tv' },
+    { label: 'Tools', icon: Wrench, path: '/tools' },
+    { label: 'Settings', icon: Settings, path: '/settings' },
+  ],
+  patient: [
+    { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { label: 'AI Chat', icon: MessageSquare, path: '/chat', accent: true },
+    { label: 'Discover', icon: Compass, path: '/discover' },
+    { label: 'Dental TV', icon: Play, path: '/dental-tv' },
+    { label: 'Settings', icon: Settings, path: '/settings' },
+  ],
+}
 
-const BOTTOM_NAV = [
-  { label: 'Dental TV', icon: Tv, path: '/dental-tv' },
-  { label: 'Peer Review', icon: MessageSquare, path: '/peer-review' },
-  { label: 'Audit Trail', icon: Shield, path: '/audit' },
-]
+function NavItem({ item, collapsed, pathname, navigate }) {
+  const active = pathname === item.path || (item.path !== '/dashboard' && pathname.startsWith(item.path))
+  const Icon = item.icon
+  return (
+    <button
+      onClick={() => navigate(item.path)}
+      className={`flex w-full items-center gap-3 rounded-[20px] px-3 py-3 text-left transition ${
+        active
+          ? 'bg-white text-[#081226] shadow-[0_14px_30px_rgba(255,255,255,0.12)]'
+          : item.accent
+            ? 'bg-[#ff7a59] text-white hover:brightness-105'
+            : 'text-white/72 hover:bg-white/8 hover:text-white'
+      } ${collapsed ? 'justify-center' : ''}`}
+    >
+      <Icon size={18} className="shrink-0" />
+      {!collapsed ? <span className="text-sm font-medium">{item.label}</span> : null}
+    </button>
+  )
+}
 
 export default function Sidebar({ collapsed, onToggle }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { profile, role, signOut } = useAuth()
+
+  async function handleSignOut() {
+    await signOut()
+    toast.success('Signed out')
+    navigate('/login', { replace: true })
+  }
+
+  const navItems = NAV[role] || NAV.doctor
 
   return (
-    <aside
-      className={`
-        flex flex-col bg-white border-r border-dental-border h-screen sticky top-0 flex-shrink-0
-        transition-all duration-200 ease-in-out
-        ${collapsed ? 'w-14' : 'w-52'}
-      `}
-    >
-      {/* Logo */}
-      <div className="flex items-center justify-between px-3 py-4 border-b border-dental-border">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-dental-blue rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold">D</span>
-            </div>
-            <span className="font-bold text-dental-text text-sm tracking-tight">Dental<span className="text-dental-blue">.ai</span></span>
-          </div>
-        )}
-        {collapsed && (
-          <div className="w-7 h-7 bg-dental-blue rounded-lg flex items-center justify-center mx-auto">
-            <span className="text-white text-xs font-bold">D</span>
-          </div>
-        )}
-        {!collapsed && (
-          <button
-            onClick={onToggle}
-            className="w-5 h-5 text-dental-text-secondary hover:text-dental-text transition-colors"
-          >
-            <ChevronLeft size={16} />
-          </button>
-        )}
+    <aside className={`fixed left-0 top-0 z-50 hidden h-screen border-r border-white/8 bg-[linear-gradient(180deg,#081226_0%,#0d1c35_60%,#101b35_100%)] px-3 py-4 text-white shadow-[18px_0_60px_rgba(0,0,0,0.22)] transition-all duration-300 md:flex md:flex-col ${collapsed ? 'w-[92px]' : 'w-[280px]'}`}>
+      <div className={`flex items-center ${collapsed ? 'justify-center' : 'justify-between'} px-2`}>
+        <AnimatePresence mode="wait">
+          {!collapsed ? (
+            <Motion.div
+              key="expanded"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+            >
+              <p className="text-xs uppercase tracking-[0.32em] text-white/45">Dental.ai</p>
+              <h1 className="mt-2 text-xl font-semibold">Clinic OS</h1>
+            </Motion.div>
+          ) : null}
+        </AnimatePresence>
+        <button onClick={onToggle} className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 transition hover:bg-white/10">
+          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
       </div>
 
-      {collapsed && (
-        <button
-          onClick={onToggle}
-          className="flex justify-center py-2 text-dental-text-secondary hover:text-dental-text transition-colors"
-        >
-          <ChevronRight size={16} />
-        </button>
-      )}
+      <div className="mt-6 rounded-[24px] border border-white/10 bg-white/6 p-4">
+        <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ff7a59] text-sm font-semibold text-white">
+            {profile?.initials || <User size={16} />}
+          </div>
+          {!collapsed ? (
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-white">{profile?.full_name || 'Dental user'}</p>
+              <p className="truncate text-xs text-white/60">{profile?.institution || profile?.specialty || 'Workspace ready'}</p>
+            </div>
+          ) : null}
+        </div>
+      </div>
 
-      {/* Nav Items */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {NAV_ITEMS.map(({ label, icon: Icon, path, badge, badgeColor }) => {
-          const isActive = location.pathname === path ||
-            (path === '/workspace' && location.pathname === '/')
-          
-          return (
-            <button
-              key={label}
-              onClick={() => navigate(path)}
-              title={collapsed ? label : undefined}
-              className={`
-                w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-xs transition-colors duration-150
-                ${isActive
-                  ? 'bg-dental-blue-light text-dental-blue font-medium'
-                  : 'text-dental-text-secondary hover:bg-dental-surface hover:text-dental-text'
-                }
-                ${collapsed ? 'justify-center' : ''}
-              `}
-            >
-              <Icon size={15} className="flex-shrink-0" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left">{label}</span>
-                  {badge && (
-                    <span className={`${badgeColor || 'bg-dental-blue'} text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none`}>
-                      {badge}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          )
-        })}
+      <nav className="mt-6 flex-1 space-y-2 overflow-y-auto">
+        {navItems.map(item => (
+          <NavItem key={item.path} item={item} collapsed={collapsed} pathname={location.pathname} navigate={navigate} />
+        ))}
       </nav>
 
-      {/* Bottom Nav */}
-      <div className="border-t border-dental-border px-2 py-2 space-y-0.5">
-        {BOTTOM_NAV.map(({ label, icon: Icon, path }) => (
-          <button
-            key={label}
-            onClick={() => navigate(path)}
-            title={collapsed ? label : undefined}
-            className={`
-              w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-xs transition-colors duration-150
-              ${location.pathname === path
-                ? 'bg-dental-blue-light text-dental-blue font-medium'
-                : 'text-dental-text-secondary hover:bg-dental-surface hover:text-dental-text'
-              }
-              ${collapsed ? 'justify-center' : ''}
-            `}
-          >
-            <Icon size={15} className="flex-shrink-0" />
-            {!collapsed && <span>{label}</span>}
-          </button>
-        ))}
-      </div>
-
-      {/* Stat Cards */}
-      {!collapsed && (
-        <div className="px-3 pb-4 space-y-2">
-          <div className="bg-dental-surface rounded-lg p-2.5">
-            <p className="text-[10px] text-dental-text-secondary mb-0.5">Cases this week</p>
-            <p className="text-lg font-bold text-dental-text">{DUMMY_USER.casesThisWeek}</p>
-          </div>
-          <div className="bg-dental-blue-light rounded-lg p-2.5">
-            <p className="text-[10px] text-dental-blue mb-0.5">Pathways generated</p>
-            <p className="text-lg font-bold text-dental-blue">{DUMMY_USER.pathwaysGenerated}</p>
-          </div>
-        </div>
-      )}
-
-      {/* User Avatar */}
-      <div className={`border-t border-dental-border p-3 flex items-center gap-2 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="w-7 h-7 bg-dental-blue rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-white text-xs font-semibold">{DUMMY_USER.initials}</span>
-        </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-dental-text truncate">{DUMMY_USER.name}</p>
-            <p className="text-[10px] text-dental-text-secondary truncate">Pro Plan</p>
-          </div>
-        )}
-      </div>
+      <button onClick={handleSignOut} className={`mt-4 flex items-center gap-3 rounded-[20px] border border-white/10 px-3 py-3 text-white/72 transition hover:bg-white/8 hover:text-white ${collapsed ? 'justify-center' : ''}`}>
+        <LogOut size={18} />
+        {!collapsed ? <span className="text-sm font-medium">Sign out</span> : null}
+      </button>
     </aside>
   )
 }

@@ -1,21 +1,20 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { CheckCircle, Download, FileText, Loader2, Save } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
+import PageTransition from '../components/PageTransition'
+import { useAuth } from '../contexts/AuthContext'
+import { saveGeneratedReferral } from '../lib/appData'
 import { generateReferralLetter } from '../lib/gemini'
-import { DUMMY_USER } from '../lib/data'
-import { FileText, Download, Loader2, Edit2, CheckCircle, AlertTriangle } from 'lucide-react'
 
 export default function ReferralBuilder() {
-  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
-  
+  const { profile } = useAuth()
+  const today = useMemo(() => new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }), [])
+
   const [form, setForm] = useState({
     patientName: '',
     patientAge: '',
     patientSex: 'Male',
     referralDate: today,
-    referringDoctor: DUMMY_USER.name,
-    referringClinic: DUMMY_USER.clinic,
-    referringQualification: DUMMY_USER.qualification,
-    referringRegNumber: DUMMY_USER.registrationNumber,
     toSpecialty: '',
     chiefComplaint: '',
     clinicalFindings: '',
@@ -24,183 +23,150 @@ export default function ReferralBuilder() {
     reasonForReferral: '',
     requestedManagement: '',
   })
-
-  const [letter, setLetter] = useState(null)
-  const [editedLetter, setEditedLetter] = useState(null)
+  const [letter, setLetter] = useState('')
+  const [subject, setSubject] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [editing, setEditing] = useState(false)
+  const [status, setStatus] = useState('')
 
-  const handleChange = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  function updateField(key, value) {
+    setForm(current => ({ ...current, [key]: value }))
+  }
 
-  const handleGenerate = async () => {
+  async function handleGenerate() {
     setLoading(true)
-    setError(null)
-    setLetter(null)
+    setStatus('')
     try {
-      const result = await generateReferralLetter(form)
-      setLetter(result)
-      setEditedLetter(result.letter)
-    } catch (err) {
-      setError(err.message === 'GEMINI_KEY_MISSING'
-        ? 'Gemini API key required.'
-        : `Error: ${err.message}`)
+      const result = await generateReferralLetter({
+        ...form,
+        referringDoctor: profile?.full_name || 'Dr. Priya Sharma',
+        referringClinic: profile?.institution || 'Dental.ai Demo Clinic',
+        referringQualification: profile?.specialty || 'Dental Practitioner',
+      })
+      setLetter(result.letter)
+      setSubject(result.subject || `Referral to ${form.toSpecialty}`)
+      setStatus('Letter generated and ready for review.')
+    } catch (error) {
+      const fallbackLetter = `Date: ${form.referralDate}
+
+To,
+Department of ${form.toSpecialty || 'Specialist Dentistry'}
+
+Re: ${form.patientName || 'Patient'} (${form.patientAge || 'Age not specified'}, ${form.patientSex})
+
+Chief complaint:
+${form.chiefComplaint || 'Not specified'}
+
+Clinical findings:
+${form.clinicalFindings || 'Pending clinician entry'}
+
+Provisional diagnosis:
+${form.provisionalDiagnosis || 'Working diagnosis under review'}
+
+Investigations done:
+${form.investigationsDone || 'No investigations attached'}
+
+Reason for referral:
+${form.reasonForReferral || 'Specialist opinion requested'}
+
+Requested management:
+${form.requestedManagement || 'Please assess and advise'}
+
+Regards,
+${profile?.full_name || 'Dr. Priya Sharma'}
+${profile?.institution || 'Dental.ai Demo Clinic'}`
+      setLetter(fallbackLetter)
+      setSubject(`Referral to ${form.toSpecialty || 'Specialist Dentistry'}`)
+      setStatus(`Used structured fallback draft because live AI generation failed: ${error.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  const handlePrint = () => {
-    const win = window.open('', '_blank')
-    win.document.write(`
-      <html><head>
-        <title>Referral Letter — ${form.patientName}</title>
-        <style>
-          body { font-family: 'Times New Roman', serif; padding: 60px; line-height: 1.8; color: #111; font-size: 14px; }
-          pre { font-family: inherit; white-space: pre-wrap; }
-        </style>
-      </head><body>
-        <pre>${editedLetter || letter?.letter}</pre>
-        <script>window.onload=()=>window.print()</script>
-      </body></html>
-    `)
-    win.document.close()
+  function handleSave() {
+    if (!letter) return
+    saveGeneratedReferral({
+      ...form,
+      letter,
+      subject,
+      patientName: form.patientName,
+      chiefComplaint: form.chiefComplaint,
+    })
+    setStatus('Referral saved to the local workspace and audit log.')
   }
 
-  const SPECIALTIES = [
-    'Endodontics', 'Periodontics', 'Oral Surgery', 'Orthodontics',
-    'Prosthodontics', 'Paediatric Dentistry', 'Oral Medicine',
-    'Implantology', 'Maxillofacial Surgery', 'Hospital A&E'
-  ]
+  function handlePrint() {
+    const win = window.open('', '_blank')
+    win.document.write(`<pre style="font-family: Georgia, serif; white-space: pre-wrap; padding: 40px;">${letter}</pre>`)
+    win.document.close()
+    win.print()
+  }
 
   return (
     <AppLayout>
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="bg-white border-b border-dental-border px-5 py-3">
-          <h1 className="text-sm font-bold text-dental-text">Referral Letter Generator</h1>
-          <p className="text-xs text-dental-text-secondary">Auto-populate and generate a formal referral letter in seconds</p>
-        </div>
-
-        <div className="flex-1 overflow-hidden flex">
-          {/* Form */}
-          <div className="w-80 border-r border-dental-border overflow-y-auto p-4 space-y-4 bg-white">
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-dental-text uppercase tracking-wide">Patient Details</h3>
-              <input className="input-field text-xs" placeholder="Patient Name" value={form.patientName} onChange={e => handleChange('patientName', e.target.value)} />
-              <div className="grid grid-cols-2 gap-2">
-                <input className="input-field text-xs" type="number" placeholder="Age" value={form.patientAge} onChange={e => handleChange('patientAge', e.target.value)} />
-                <select className="input-field text-xs" value={form.patientSex} onChange={e => handleChange('patientSex', e.target.value)}>
-                  <option>Male</option><option>Female</option><option>Other</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-dental-text uppercase tracking-wide">Refer To</h3>
-              <select className="input-field text-xs" value={form.toSpecialty} onChange={e => handleChange('toSpecialty', e.target.value)}>
-                <option value="">Select specialty...</option>
-                {SPECIALTIES.map(s => <option key={s}>{s}</option>)}
-              </select>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-dental-text uppercase tracking-wide">Clinical Details</h3>
-              {[
-                { key: 'chiefComplaint', label: 'Chief Complaint', rows: 2 },
-                { key: 'clinicalFindings', label: 'Clinical Findings', rows: 3 },
-                { key: 'provisionalDiagnosis', label: 'Provisional Diagnosis', rows: 2 },
-                { key: 'investigationsDone', label: 'Investigations Done & Results', rows: 2 },
-                { key: 'reasonForReferral', label: 'Reason for Referral', rows: 2 },
-                { key: 'requestedManagement', label: 'Requested Management', rows: 2 },
-              ].map(({ key, label, rows }) => (
-                <div key={key}>
-                  <label className="text-[10px] font-medium text-dental-text-secondary block mb-1">{label}</label>
-                  <textarea
-                    className="input-field text-xs resize-none"
-                    rows={rows}
-                    placeholder={label}
-                    value={form[key]}
-                    onChange={e => handleChange(key, e.target.value)}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={handleGenerate}
-              disabled={loading || !form.patientName || !form.chiefComplaint || !form.toSpecialty}
-              className="btn-primary w-full justify-center"
-            >
-              {loading ? <><Loader2 size={14} className="animate-spin" /> Generating...</> : <><FileText size={14} /> Generate Letter</>}
-            </button>
-
-            {error && <p className="text-xs text-red-600">{error}</p>}
-          </div>
-
-          {/* Letter Preview */}
-          <div className="flex-1 overflow-y-auto p-5">
-            {!letter && !loading && (
-              <div className="flex items-center justify-center h-full text-dental-text-secondary">
-                <div className="text-center">
-                  <FileText size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Fill the form and generate your referral letter</p>
-                  <p className="text-xs mt-1">Auto-populated from active case data · Standard Indian hospital format</p>
-                </div>
-              </div>
-            )}
-
-            {loading && (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Loader2 size={32} className="animate-spin text-dental-blue mx-auto mb-3" />
-                  <p className="text-sm text-dental-text-secondary">Generating referral letter...</p>
-                </div>
-              </div>
-            )}
-
-            {letter && (
-              <div className="max-w-2xl mx-auto space-y-3 animate-fade-in">
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-dental-text flex-1">Referral Letter Preview</h3>
-                  <button onClick={() => setEditing(!editing)} className="btn-ghost text-xs py-1.5">
-                    <Edit2 size={12} /> {editing ? 'Preview' : 'Edit'}
-                  </button>
-                  <button onClick={handlePrint} className="btn-primary text-xs py-1.5">
-                    <Download size={12} /> Print / Save PDF
-                  </button>
-                </div>
-
-                {letter.subject && (
-                  <div className="bg-dental-blue-light border border-dental-blue rounded-lg px-3 py-2">
-                    <p className="text-xs font-semibold text-dental-blue">{letter.subject}</p>
+      <PageTransition>
+        <div className="min-h-full bg-[#f6f3ec] px-4 py-5 md:px-8">
+          <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+            <section className="rounded-[30px] border border-black/6 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Referral workflow</p>
+              <h1 className="mt-2 text-2xl font-semibold text-slate-900">Generate polished specialist letters</h1>
+              <div className="mt-5 space-y-3">
+                {[
+                  ['patientName', 'Patient name'],
+                  ['patientAge', 'Age'],
+                  ['toSpecialty', 'Target specialty'],
+                  ['chiefComplaint', 'Chief complaint'],
+                  ['clinicalFindings', 'Clinical findings'],
+                  ['provisionalDiagnosis', 'Provisional diagnosis'],
+                  ['investigationsDone', 'Investigations done'],
+                  ['reasonForReferral', 'Reason for referral'],
+                  ['requestedManagement', 'Requested management'],
+                ].map(([key, label]) => (
+                  <div key={key}>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">{label}</label>
+                    {key === 'chiefComplaint' || key === 'clinicalFindings' || key === 'provisionalDiagnosis' || key === 'investigationsDone' || key === 'reasonForReferral' || key === 'requestedManagement' ? (
+                      <textarea value={form[key]} onChange={event => updateField(key, event.target.value)} rows={3} className="w-full rounded-[18px] border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-[#ff7a59]" />
+                    ) : (
+                      <input value={form[key]} onChange={event => updateField(key, event.target.value)} className="w-full rounded-[18px] border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-[#ff7a59]" />
+                    )}
                   </div>
-                )}
+                ))}
+                <button onClick={handleGenerate} disabled={loading} className="btn-primary w-full justify-center">
+                  {loading ? <><Loader2 size={14} className="animate-spin" /> Generating</> : <><FileText size={14} /> Generate letter</>}
+                </button>
+              </div>
+            </section>
 
-                {editing ? (
-                  <textarea
-                    value={editedLetter}
-                    onChange={e => setEditedLetter(e.target.value)}
-                    className="w-full border border-dental-border rounded-xl p-4 text-xs font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-dental-blue"
-                    rows={30}
-                  />
+            <section className="rounded-[30px] border border-black/6 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Preview</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">{subject || 'Referral draft preview'}</h2>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={handleSave} disabled={!letter} className="btn-secondary text-xs"><Save size={13} /> Save</button>
+                  <button onClick={handlePrint} disabled={!letter} className="btn-primary text-xs"><Download size={13} /> Print / PDF</button>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-[26px] bg-slate-50 p-6">
+                {letter ? (
+                  <pre className="whitespace-pre-wrap text-sm leading-7 text-slate-800 font-serif">{letter}</pre>
                 ) : (
-                  <div className="card p-6">
-                    <pre className="text-xs leading-relaxed whitespace-pre-wrap font-serif text-dental-text">
-                      {editedLetter || letter.letter}
-                    </pre>
+                  <div className="flex min-h-[420px] items-center justify-center text-center text-slate-500">
+                    Fill the form and generate the first referral draft.
                   </div>
                 )}
-
-                <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2">
-                  <CheckCircle size={14} className="text-green-600" />
-                  <p className="text-xs text-green-700">Letter generated. Review before printing or sending.</p>
-                </div>
               </div>
-            )}
+
+              {status ? (
+                <div className="mt-4 flex items-start gap-2 rounded-[20px] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  <CheckCircle size={16} className="mt-0.5" /> {status}
+                </div>
+              ) : null}
+            </section>
           </div>
         </div>
-      </div>
+      </PageTransition>
     </AppLayout>
   )
 }

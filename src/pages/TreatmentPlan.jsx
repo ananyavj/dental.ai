@@ -1,206 +1,151 @@
 import { useState } from 'react'
+import { CheckCircle, ClipboardList, Loader2, Save } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
+import PageTransition from '../components/PageTransition'
+import { saveTreatmentPlan } from '../lib/appData'
 import { buildTreatmentPlan } from '../lib/gemini'
-import { Loader2, ChevronRight, User, AlertTriangle, CheckCircle, ClipboardList } from 'lucide-react'
 
 export default function TreatmentPlan() {
   const [form, setForm] = useState({
+    patientName: '',
+    age: '',
+    urgency: 'Routine',
     chiefComplaint: '',
     diagnoses: '',
     medicalHistory: '',
-    age: '',
-    urgency: 'Routine',
-    patientName: '',
   })
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [showPatientVersion, setShowPatientVersion] = useState(false)
-  const PHASE_COLORS = ['border-red-400', 'border-amber-400', 'border-blue-400', 'border-green-400', 'border-purple-400']
-  const PHASE_ICONS = ['🚨', '🦷', '🔧', '✅', '🔄']
+  const [status, setStatus] = useState('')
 
-  const handleBuild = async () => {
+  function updateField(key, value) {
+    setForm(current => ({ ...current, [key]: value }))
+  }
+
+  async function handleBuild() {
     setLoading(true)
-    setError(null)
-    setPlan(null)
+    setStatus('')
     try {
       const result = await buildTreatmentPlan(form)
       setPlan(result)
-    } catch (err) {
-      setError(err.message === 'GEMINI_KEY_MISSING' ? 'Gemini API key required.' : `Error: ${err.message}`)
+      setStatus('Treatment plan generated.')
+    } catch (error) {
+      setPlan({
+        phases: [
+          { phase: 1, name: 'Stabilization', visits: 1, rationale: 'Control pain and active disease burden.', procedures: [{ procedure: 'Emergency pain relief and diagnostics', priority: 'Critical', detail: form.chiefComplaint }] },
+          { phase: 2, name: 'Disease control', visits: 2, rationale: 'Treat underlying pathology before definitive work.', procedures: [{ procedure: 'Address primary diagnosis', priority: 'High', detail: form.diagnoses }] },
+          { phase: 3, name: 'Definitive restoration', visits: 2, rationale: 'Restore function and aesthetics after disease control.', procedures: [{ procedure: 'Definitive restorative planning', priority: 'Routine', detail: 'Sequence according to risk, occlusion, and patient preference.' }] },
+        ],
+        maintenanceProtocol: 'Review at 1 week, 6 weeks, and 3 months. Reinforce oral hygiene and compliance with recall schedule.',
+      })
+      setStatus(`Used deterministic fallback plan because live generation failed: ${error.message}`)
     } finally {
       setLoading(false)
     }
   }
 
+  function handleSave() {
+    if (!plan) return
+    saveTreatmentPlan({ ...form, ...plan, patientName: form.patientName, chiefComplaint: form.chiefComplaint })
+    setStatus('Treatment plan saved to workspace and audit log.')
+  }
+
   return (
     <AppLayout>
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="bg-white border-b border-dental-border px-5 py-3">
-          <h1 className="text-sm font-bold text-dental-text">Treatment Plan Builder</h1>
-          <p className="text-xs text-dental-text-secondary">AI-generated phased treatment plan with correct sequencing logic</p>
-        </div>
-
-        <div className="flex-1 overflow-hidden flex">
-          {/* Input Form */}
-          <div className="w-72 border-r border-dental-border overflow-y-auto p-4 space-y-3 bg-white">
-            <h3 className="text-xs font-semibold text-dental-text uppercase tracking-wide">Patient Information</h3>
-            
-            {[
-              { key: 'patientName', label: 'Patient Name', type: 'input', placeholder: 'Name' },
-              { key: 'age', label: 'Age', type: 'input', placeholder: 'Age', inputType: 'number' },
-            ].map(({ key, label, placeholder, inputType }) => (
-              <div key={key}>
-                <label className="text-[10px] font-medium text-dental-text-secondary block mb-1">{label}</label>
-                <input type={inputType || 'text'} className="input-field text-xs" placeholder={placeholder}
-                  value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
-              </div>
-            ))}
-
-            <div>
-              <label className="text-[10px] font-medium text-dental-text-secondary block mb-1">Urgency</label>
-              <select className="input-field text-xs" value={form.urgency} onChange={e => setForm(f => ({ ...f, urgency: e.target.value }))}>
-                <option>Emergency</option><option>Urgent</option><option>Routine</option>
-              </select>
-            </div>
-
-            {[
-              { key: 'chiefComplaint', label: 'Chief Complaint *', rows: 2, placeholder: 'Main complaint' },
-              { key: 'diagnoses', label: 'Confirmed Diagnoses *', rows: 3, placeholder: 'e.g., Chronic periodontitis stage III, Caries tooth 26, Missing teeth 36, 46' },
-              { key: 'medicalHistory', label: 'Medical History & Flags', rows: 2, placeholder: 'Diabetes, hypertension, medications...' },
-            ].map(({ key, label, rows, placeholder }) => (
-              <div key={key}>
-                <label className="text-[10px] font-medium text-dental-text-secondary block mb-1">{label}</label>
-                <textarea className="input-field text-xs resize-none" rows={rows} placeholder={placeholder}
-                  value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />
-              </div>
-            ))}
-
-            <button onClick={handleBuild} disabled={loading || !form.chiefComplaint || !form.diagnoses} className="btn-primary w-full justify-center">
-              {loading ? <><Loader2 size={14} className="animate-spin" /> Building plan...</> : <><ClipboardList size={14} /> Build Treatment Plan</>}
-            </button>
-            {error && <p className="text-xs text-red-600">{error}</p>}
-          </div>
-
-          {/* Plan Output */}
-          <div className="flex-1 overflow-y-auto p-5">
-            {!plan && !loading && (
-              <div className="flex items-center justify-center h-full text-dental-text-secondary">
-                <div className="text-center">
-                  <ClipboardList size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">Fill the form to generate a phased treatment plan</p>
-                  <p className="text-xs mt-1">Phase 1: Emergency → Phase 2: Perio → Phase 3: Restorative → Phase 4: Maintenance</p>
-                </div>
-              </div>
-            )}
-            {loading && (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Loader2 size={32} className="animate-spin text-dental-blue mx-auto mb-3" />
-                  <p className="text-sm text-dental-text-secondary">Building your treatment plan...</p>
-                </div>
-              </div>
-            )}
-            {plan && (
-              <div className="max-w-2xl mx-auto space-y-4 animate-slide-in">
-                {/* Toggle */}
-                <div className="flex items-center gap-3">
-                  <h2 className="text-sm font-bold text-dental-text flex-1">
-                    {form.patientName ? `Treatment Plan — ${form.patientName}` : 'Treatment Plan'}
-                  </h2>
-                  <span className="text-xs text-dental-text-secondary">
-                    Estimated {plan.totalVisitsEstimate} visits total
-                  </span>
-                  <button
-                    onClick={() => setShowPatientVersion(v => !v)}
-                    className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${showPatientVersion ? 'bg-dental-blue text-white border-dental-blue' : 'border-dental-border text-dental-text-secondary'}`}
-                  >
-                    {showPatientVersion ? 'Clinical View' : 'Patient View'}
-                  </button>
-                </div>
-
-                {showPatientVersion ? (
-                  <div className="card p-5">
-                    <h3 className="text-xs font-semibold text-dental-text mb-3 flex items-center gap-2">
-                      <User size={14} className="text-dental-blue" /> Patient-Friendly Explanation
-                    </h3>
-                    <p className="text-xs text-dental-text leading-relaxed whitespace-pre-wrap">
-                      {plan.patientFriendlyPlan}
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {plan.phases?.map((phase, i) => (
-                      <div key={i} className={`card p-4 border-l-4 ${PHASE_COLORS[i % PHASE_COLORS.length]}`}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="text-xl">{PHASE_ICONS[i % PHASE_ICONS.length]}</span>
-                          <div>
-                            <h3 className="text-sm font-bold text-dental-text">Phase {phase.phase}: {phase.name}</h3>
-                            <p className="text-[10px] text-dental-text-secondary">{phase.visits} visit{phase.visits !== 1 ? 's' : ''} estimated</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2 mb-3">
-                          {phase.procedures?.map((proc, j) => (
-                            <div key={j} className="flex items-start gap-2">
-                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5 ${
-                                proc.priority === 'Critical' ? 'bg-red-100 text-red-700' :
-                                proc.priority === 'High' ? 'bg-amber-100 text-amber-700' :
-                                'bg-gray-100 text-gray-600'
-                              }`}>{proc.priority}</span>
-                              <div>
-                                <p className="text-xs font-medium text-dental-text">{proc.procedure}</p>
-                                {proc.detail && <p className="text-[10px] text-dental-text-secondary">{proc.detail}</p>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="bg-dental-surface rounded-lg p-2.5">
-                          <p className="text-[10px] text-dental-text-secondary italic">{phase.rationale}</p>
-                        </div>
-                      </div>
-                    ))}
-
-                    {plan.maintenanceProtocol && (
-                      <div className="card p-4 border-l-4 border-dental-blue">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle size={14} className="text-dental-blue" />
-                          <h3 className="text-xs font-semibold text-dental-text">Maintenance Protocol</h3>
-                        </div>
-                        <p className="text-xs text-dental-text">{plan.maintenanceProtocol}</p>
-                      </div>
+      <PageTransition>
+        <div className="min-h-full bg-[#f6f3ec] px-4 py-5 md:px-8">
+          <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+            <section className="rounded-[30px] border border-black/6 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Treatment planning</p>
+              <h1 className="mt-2 text-2xl font-semibold text-slate-900">Sequence care with clinical rationale</h1>
+              <div className="mt-5 space-y-3">
+                {[
+                  ['patientName', 'Patient name'],
+                  ['age', 'Age'],
+                  ['chiefComplaint', 'Chief complaint'],
+                  ['diagnoses', 'Diagnoses'],
+                  ['medicalHistory', 'Medical history'],
+                ].map(([key, label]) => (
+                  <div key={key}>
+                    <label className="mb-1 block text-xs font-medium text-slate-500">{label}</label>
+                    {key === 'chiefComplaint' || key === 'diagnoses' || key === 'medicalHistory' ? (
+                      <textarea value={form[key]} onChange={event => updateField(key, event.target.value)} rows={3} className="w-full rounded-[18px] border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-[#ff7a59]" />
+                    ) : (
+                      <input value={form[key]} onChange={event => updateField(key, event.target.value)} className="w-full rounded-[18px] border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-[#ff7a59]" />
                     )}
-                  </>
-                )}
-
-                {/* Cost Template */}
-                <div className="card p-4">
-                  <h3 className="text-xs font-semibold text-dental-text mb-3">Cost Estimate Template</h3>
-                  <div className="space-y-2">
-                    {plan.phases?.map((phase, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <span className="text-xs text-dental-text flex-1">Phase {phase.phase}: {phase.name}</span>
-                        <input
-                          type="text"
-                          placeholder="₹ —"
-                          className="w-24 border border-dental-border rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-1 focus:ring-dental-blue"
-                        />
-                      </div>
-                    ))}
-                    <div className="flex items-center gap-3 pt-2 border-t border-dental-border">
-                      <span className="text-xs font-bold text-dental-text flex-1">Total Estimate</span>
-                      <input
-                        type="text"
-                        placeholder="₹ —"
-                        className="w-24 border border-dental-blue rounded-lg px-2 py-1 text-xs text-right font-bold focus:outline-none focus:ring-1 focus:ring-dental-blue"
-                      />
-                    </div>
                   </div>
+                ))}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500">Urgency</label>
+                  <select value={form.urgency} onChange={event => updateField('urgency', event.target.value)} className="w-full rounded-[18px] border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-[#ff7a59]">
+                    <option>Emergency</option>
+                    <option>Urgent</option>
+                    <option>Routine</option>
+                  </select>
                 </div>
+                <button onClick={handleBuild} disabled={loading} className="btn-primary w-full justify-center">
+                  {loading ? <><Loader2 size={14} className="animate-spin" /> Building</> : <><ClipboardList size={14} /> Build plan</>}
+                </button>
               </div>
-            )}
+            </section>
+
+            <section className="rounded-[30px] border border-black/6 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Plan output</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">Phased treatment roadmap</h2>
+                </div>
+                <button onClick={handleSave} disabled={!plan} className="btn-secondary text-xs"><Save size={13} /> Save plan</button>
+              </div>
+
+              {plan ? (
+                <div className="mt-6 space-y-4">
+                  {plan.phases?.map(phase => (
+                    <div key={phase.phase} className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Phase {phase.phase}</p>
+                          <h3 className="mt-1 text-xl font-semibold text-slate-900">{phase.name}</h3>
+                        </div>
+                        <span className="rounded-full bg-[#101b35] px-3 py-1 text-xs font-medium text-white">{phase.visits} visit{phase.visits !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {phase.procedures?.map((item, index) => (
+                          <div key={index} className="rounded-[18px] bg-white px-4 py-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-medium text-slate-900">{item.procedure}</p>
+                              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-amber-700">{item.priority}</span>
+                            </div>
+                            <p className="mt-2 text-sm text-slate-600">{item.detail}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="mt-4 text-sm leading-6 text-slate-600">{phase.rationale}</p>
+                    </div>
+                  ))}
+
+                  {plan.maintenanceProtocol ? (
+                    <div className="rounded-[24px] bg-[#101b35] p-5 text-white">
+                      <p className="text-xs uppercase tracking-[0.2em] text-white/60">Maintenance protocol</p>
+                      <p className="mt-3 text-sm leading-6 text-white/80">{plan.maintenanceProtocol}</p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="mt-6 flex min-h-[420px] items-center justify-center rounded-[26px] bg-slate-50 text-center text-slate-500">
+                  Build a plan to see phased sequencing, rationale, and chairside notes.
+                </div>
+              )}
+
+              {status ? (
+                <div className="mt-4 flex items-start gap-2 rounded-[20px] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  <CheckCircle size={16} className="mt-0.5" /> {status}
+                </div>
+              ) : null}
+            </section>
           </div>
         </div>
-      </div>
+      </PageTransition>
     </AppLayout>
   )
 }

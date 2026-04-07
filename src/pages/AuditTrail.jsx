@@ -1,133 +1,101 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Download, Shield } from 'lucide-react'
 import AppLayout from '../components/AppLayout'
-import { getAuditLogs } from '../lib/data'
-import { Shield, Download, Filter, Clock, CheckCircle, X, Edit2 } from 'lucide-react'
-
-function formatDate(iso) {
-  return new Date(iso).toLocaleString('en-IN', {
-    day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
-const ACTION_STYLES = {
-  accepted: 'bg-green-100 text-green-700',
-  modified: 'bg-amber-100 text-amber-700',
-  rejected: 'bg-red-100 text-red-700',
-  pending: 'bg-gray-100 text-gray-500',
-}
-
-const SEV_COLORS = {
-  EMERGENCY: 'bg-red-500',
-  URGENT: 'bg-amber-500',
-  ROUTINE: 'bg-green-500',
-}
+import PageTransition from '../components/PageTransition'
+import { getAuditEvents } from '../lib/appData'
 
 export default function AuditTrail() {
-  const logs = getAuditLogs()
+  const [events, setEvents] = useState([])
   const [filter, setFilter] = useState('All')
 
-  const filtered = logs.filter(l =>
-    filter === 'All' || l.severity === filter || l.doctorAction === filter.toLowerCase()
-  )
+  useEffect(() => {
+    getAuditEvents().then(setEvents)
+  }, [])
 
-  const handleExport = () => {
-    const content = JSON.stringify(logs, null, 2)
-    const blob = new Blob([content], { type: 'application/json' })
+  const filtered = useMemo(() => {
+    return events.filter(item =>
+      filter === 'All' ||
+      item.severity === filter ||
+      item.doctorAction === filter
+    )
+  }, [events, filter])
+
+  function handleExport() {
+    const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `dental_ai_audit_${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `dental-ai-audit-${new Date().toISOString().slice(0, 10)}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
     <AppLayout>
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="bg-white border-b border-dental-border px-5 py-3 flex items-center">
-          <div className="flex-1">
-            <h1 className="text-sm font-bold text-dental-text flex items-center gap-2">
-              <Shield size={15} className="text-dental-blue" /> Medico-Legal Audit Trail
-            </h1>
-            <p className="text-xs text-dental-text-secondary">Write-once log of all AI recommendations and doctor actions</p>
-          </div>
-          <button onClick={handleExport} className="btn-secondary text-xs py-1.5">
-            <Download size={13} /> Export JSON
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white border-b border-dental-border px-5 py-2 flex gap-2">
-          {['All', 'EMERGENCY', 'URGENT', 'ROUTINE', 'accepted', 'modified', 'rejected'].map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                filter === f ? 'bg-dental-blue text-white border-dental-blue' : 'text-dental-text-secondary border-dental-border hover:border-dental-blue'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          {filtered.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-dental-text-secondary">
-              <div className="text-center">
-                <Shield size={40} className="mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No audit entries yet</p>
-                <p className="text-xs mt-1">Entries are created automatically when you generate clinical pathways</p>
+      <PageTransition>
+        <div className="min-h-full bg-[#f6f3ec] px-4 py-5 md:px-8">
+          <div className="mx-auto max-w-7xl rounded-[30px] border border-black/6 bg-white p-6 shadow-[0_24px_70px_rgba(15,23,42,0.08)]">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-slate-500">Audit trail</p>
+                <h1 className="mt-2 text-3xl font-semibold text-slate-900">Medico-legal activity ledger</h1>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                  Every AI-assisted output and saved clinical draft can land here. The page reads live `audit_events` when present
+                  and otherwise keeps working with the seeded write-once local log.
+                </p>
               </div>
+              <button onClick={handleExport} className="btn-secondary">
+                <Download size={14} /> Export JSON
+              </button>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {/* Header Row */}
-              <div className="grid grid-cols-7 gap-3 px-4 py-2 text-[10px] font-bold text-dental-text-secondary uppercase tracking-wide">
-                <span>Timestamp</span>
-                <span>Case ID</span>
-                <span>Severity</span>
-                <span>Model Version</span>
-                <span>Doctor Action</span>
-                <span className="col-span-2">Details</span>
-              </div>
 
-              {filtered.map(log => (
-                <div key={log.id} className="card px-4 py-3 grid grid-cols-7 gap-3 items-start animate-fade-in">
-                  <div className="flex items-center gap-1.5 text-[10px] text-dental-text-secondary">
-                    <Clock size={10} />
-                    {formatDate(log.timestamp)}
-                  </div>
-                  <span className="text-[10px] font-mono text-dental-text-secondary truncate">{log.caseId || '—'}</span>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {['All', 'EMERGENCY', 'URGENT', 'ROUTINE', 'accepted', 'modified', 'rejected'].map(item => (
+                <button
+                  key={item}
+                  onClick={() => setFilter(item)}
+                  className={`rounded-full px-4 py-2 text-xs font-medium transition ${
+                    filter === item ? 'bg-[#101b35] text-white' : 'border border-slate-200 text-slate-600 hover:border-[#ff7a59]/40'
+                  }`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {filtered.map(item => (
+                <div key={item.id} className="grid gap-4 rounded-[24px] border border-slate-200 bg-slate-50/70 p-5 md:grid-cols-[160px_140px_120px_1fr]">
                   <div>
-                    {log.severity && (
-                      <div className="flex items-center gap-1">
-                        <div className={`w-1.5 h-1.5 rounded-full ${SEV_COLORS[log.severity] || 'bg-gray-400'}`} />
-                        <span className="text-[10px] text-dental-text">{log.severity}</span>
-                      </div>
-                    )}
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Timestamp</p>
+                    <p className="mt-2 text-sm font-medium text-slate-900">
+                      {new Date(item.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
-                  <span className="text-[10px] font-mono text-dental-text-secondary">{log.modelVersion}</span>
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full w-fit ${ACTION_STYLES[log.doctorAction] || ACTION_STYLES.pending}`}>
-                    {log.doctorAction || 'pending'}
-                  </span>
-                  <div className="col-span-2 text-[10px] text-dental-text-secondary">
-                    {log.input?.chiefComplaint || log.input?.caseId || 'System entry'}
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Case / severity</p>
+                    <p className="mt-2 text-sm font-medium text-slate-900">{item.caseId || 'System log'}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.severity || 'ROUTINE'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Action</p>
+                    <span className="mt-2 inline-flex rounded-full bg-[#101b35] px-3 py-1 text-xs font-medium text-white">
+                      {item.doctorAction || 'pending'}
+                    </span>
+                  </div>
+                  <div className="rounded-[20px] bg-white px-4 py-3">
+                    <div className="flex items-center gap-2 text-slate-900">
+                      <Shield size={14} className="text-[#ff7a59]" />
+                      <p className="text-sm font-medium">{item.input?.chiefComplaint || item.title || 'Clinical event logged'}</p>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">Model: {item.modelVersion || 'gemini-1.5-flash'}</p>
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          </div>
         </div>
-
-        {/* Info Footer */}
-        <div className="bg-dental-surface border-t border-dental-border px-5 py-2">
-          <p className="text-[10px] text-dental-text-secondary">
-            All entries are write-once and cannot be edited or deleted. Exported as JSON for medico-legal proceedings.
-            Total entries: <strong>{logs.length}</strong> · {filtered.length} shown
-          </p>
-        </div>
-      </div>
+      </PageTransition>
     </AppLayout>
   )
 }
