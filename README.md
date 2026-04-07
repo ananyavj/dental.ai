@@ -1,82 +1,78 @@
-# dental.ai
+# dental.ai lite
 
-Cloud-backed dental workspace built around:
-- `src/`: Vite React product shell
-- `backend/`: FastAPI service layer
-- `supabase/`: hosted Supabase migrations
+Fast-loading Vite + React rebuild of dental.ai with Supabase auth/data and direct Gemini calls.
 
-## What is included
-- Standardized dashboard, patient directory, drugs, discover, audit, referral, treatment-plan, and imaging flows
-- Supabase-ready schema for cases, notes, chat history, saved AI outputs, audit events, and catalogs
-- Graceful demo fallbacks when Gemini or specific Supabase tables are unavailable
-- Persistent local workspace memory for chat, saved referrals, saved treatment plans, and x-ray reports
+## Stack
+- Vite + React 18 + TypeScript
+- Tailwind CSS v3
+- Lightweight shadcn-style UI primitives
+- Supabase for auth, database, and persistence
+- Gemini 1.5 Flash for chat, triage, drugs, x-ray, referral, and treatment-plan helpers
+- TipTap only for the case-study editor
 
-## Environment setup
-Create `.env` in the project root from `.env.example`.
+## Product areas
+- `Dashboard`: clinic metrics, recent cases, activity, and saved conversations
+- `Chatbot`: Practitioner, Student, and Patient modes with persisted conversation history
+- `Patient Directory`: search cases and run AI triage
+- `Discover`: PubMed-powered latest research plus community case studies
+- `Tools`: x-ray, drug reference, referral builder, treatment planner, audit trail
+- `Exam Mode`: lightweight student revision flow
+- `Dental TV`: quick learning cards
 
-Required frontend values:
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_GEMINI_API_KEY`
+## Important folders
+- `src/App.tsx`: router and lazy-loading setup
+- `src/components/`: shell, common, and UI primitives
+- `src/contexts/auth-context.tsx`: Supabase auth bootstrap and role/profile state
+- `src/lib/`: Supabase client, Gemini helpers, PubMed client, mock data, shared data access
+- `src/pages/`: route-level screens
+- `supabase/migrations/`: schema + policy changes
 
-Required backend values:
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+## Env setup
+Copy `.env.example` to `.env` and fill in:
 
-## Apply Supabase migrations
-From this project folder:
+```env
+VITE_SUPABASE_URL=your_supabase_url_here
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+```
+
+Only the `VITE_...` values are needed to run the frontend. The extra Supabase service vars are kept for migration/admin workflows.
+
+## Database setup
+Push migrations from the project root:
 
 ```bash
 supabase db push
 ```
 
-This applies:
+This includes:
 - `00001_initial_schema.sql`
 - `00002_product_surface.sql`
+- `00003_fix_auth_trigger.sql`
+- `00004_fix_profiles_role_constraint.sql`
+- `00005_case_study_publish_policy.sql`
 
-The second migration seeds:
-- patient cases
-- drug catalog
-- knowledge-base articles
-- audit events
-- sample AI conversations
+## Demo logins
+- `doc@mail.com` / `doc12345`
+- `stu@mail.com` / `stu12345`
+- `pat@mail.com` / `pat12345`
+- `admin@mail.com` / `sudouser123`
 
-## Run the product
-Install frontend dependencies:
+## Run locally
+From the project root:
 
 ```bash
 npm install
-```
-
-Start the Vite app:
-
-```bash
 npm run dev
 ```
 
-Start the FastAPI backend in a second terminal:
+Open the Vite URL printed in the terminal, usually `http://localhost:5173`.
 
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
+## Verification
+- `npm run build`
+- `npm run lint`
 
-## How to use it
-1. Open the Vite app URL shown in the terminal.
-2. Sign in with Supabase auth, or use the built-in demo fallback if Supabase env vars are not set.
-3. Visit:
-   - `/dashboard` for clinic overview
-   - `/patients` for case tracking
-   - `/chat` for persistent AI chat threads
-   - `/tools/xray` for imaging reports
-   - `/tools/referral` for referral drafts
-   - `/tools/treatment-plan` for phased plans
-   - `/tools/audit` for medico-legal logs
-
-## Notes
-- `npm run build` and `npm run lint` both pass for the Vite app.
-- Some AI actions use Gemini when configured, otherwise they fall back to deterministic demo-safe outputs.
-- Chat history and generated drafts are also persisted in local storage so the app remains usable even before every Supabase write path is wired.
+Both pass on the lightweight Vite rebuild.
