@@ -1,0 +1,17 @@
+{
+ "name": "Dental Research Update",
+ "nodes": [
+   {
+     "type": "cron",
+     "schedule": "daily"
+   },
+   {
+     "type": "httpRequest",
+     "url": "https://pubmed.ncbi.nlm.nih.gov/api"
+   },
+   {
+     "type": "function",
+     "name": "clean_text"
+   }
+ ]
+}

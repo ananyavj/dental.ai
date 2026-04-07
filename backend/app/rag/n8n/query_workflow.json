@@ -1,0 +1,17 @@
+{
+ "name": "Dental Query Workflow",
+ "nodes": [
+   {
+     "type": "webhook"
+   },
+   {
+     "type": "embedding"
+   },
+   {
+     "type": "vector_search"
+   },
+   {
+     "type": "llm"
+   }
+ ]
+}
