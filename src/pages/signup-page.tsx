@@ -22,7 +22,11 @@ export function SignupPage() {
     event.preventDefault()
     const { error } = await signUp(form)
     if (error) {
-      toast.error(error.message)
+      if (error.message.toLowerCase().includes('rate limit')) {
+        toast.error('Supabase email sending is rate-limited. Use the demo logins for now, or disable email confirmation / configure custom SMTP in Supabase Auth.')
+      } else {
+        toast.error(error.message)
+      }
       return
     }
     toast.success('Account created. Check email if confirmation is enabled.')
@@ -36,6 +40,9 @@ export function SignupPage() {
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">Dental.ai</p>
             <h1 className="mt-2 text-3xl font-semibold">Create account</h1>
+          </div>
+          <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            Supabase’s built-in email provider only allows a very small number of signup emails. If you see “email rate limit exceeded”, either use the seeded demo accounts or disable email confirmation / configure custom SMTP in Supabase Dashboard → Auth.
           </div>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <Input placeholder="Full name" value={form.fullName} onChange={event => setForm({ ...form, fullName: event.target.value })} />

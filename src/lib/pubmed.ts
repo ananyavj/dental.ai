@@ -2,7 +2,7 @@ import { fallbackResearch } from './mock'
 import { formatRelativeMinutes, readStorage, writeStorage } from './utils'
 import type { ResearchPaper } from '../types'
 
-const SEARCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=dentistry&retmax=12&sort=pub+date&retmode=json'
+const SEARCH_URL = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=dentistry&retmax=18&sort=pub+date&retmode=json'
 const CACHE_KEY = 'dental-ai-pubmed-cache'
 const CACHE_AGE = 1000 * 60 * 15
 

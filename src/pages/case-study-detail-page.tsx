@@ -53,9 +53,10 @@ export default function CaseStudyDetailPage() {
             <>
               <div className="flex flex-wrap items-center gap-3">
                 <Badge>{study.specialty}</Badge>
-                <p className="text-sm text-muted-foreground">Dr. {study.authorName}</p>
+                <p className="text-sm text-muted-foreground">{study.authorRole === 'student' ? study.authorName : `Dr. ${study.authorName}`}</p>
                 <p className="text-sm text-muted-foreground">{study.views} views</p>
                 <p className="text-sm text-muted-foreground">{study.helpfulCount} helpful</p>
+                <p className="text-sm text-muted-foreground">{study.readTime || '5 min read'}</p>
               </div>
               <div className="rich-prose" dangerouslySetInnerHTML={{ __html: study.content }} />
             </>

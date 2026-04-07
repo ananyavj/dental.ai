@@ -9,6 +9,7 @@ import type {
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || ''
 const enabled = Boolean(apiKey && !apiKey.includes('your_gemini_api_key_here'))
+const GEMINI_MODEL = 'gemini-2.5-flash'
 
 let client: GoogleGenerativeAI | null = null
 
@@ -21,7 +22,7 @@ function getClient() {
 async function runPrompt(prompt: string) {
   const genAI = getClient()
   if (!genAI) throw new Error('GEMINI_NOT_CONFIGURED')
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  const model = genAI.getGenerativeModel({ model: GEMINI_MODEL })
   const result = await model.generateContent(prompt)
   return result.response.text()
 }
@@ -33,8 +34,7 @@ function cleanJson(text: string) {
 export const isGeminiEnabled = enabled
 
 export async function chatWithGemini(mode: ChatMode, prompt: string, history: Array<{ role: string; content: string }>) {
-  const genAI = getClient()
-  if (!genAI) {
+  if (!getClient()) {
     return `${mode === 'practitioner' ? 'Practitioner' : mode === 'student' ? 'Student' : 'Patient'} mode demo response:\n\n${prompt}\n\nAdd VITE_GEMINI_API_KEY to enable live Gemini answers.`
   }
 
@@ -45,20 +45,25 @@ export async function chatWithGemini(mode: ChatMode, prompt: string, history: Ar
         ? 'You are dental.ai for dental students. Explain clearly, structure answers, and include recall-friendly memory hooks.'
         : 'You are dental.ai for patients. Use simple, safe, non-diagnostic language and encourage dental consultation.'
 
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
-    systemInstruction: system,
-  })
+  const transcript = history
+    .filter(item => item.content.trim())
+    .slice(-8)
+    .map(item => `${item.role === 'assistant' ? 'Assistant' : 'User'}: ${item.content}`)
+    .join('\n')
 
-  const chat = model.startChat({
-    history: history.map(item => ({
-      role: item.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: item.content }],
-    })),
-  })
+  try {
+    return await runPrompt(`${system}
 
-  const result = await chat.sendMessage(prompt)
-  return result.response.text()
+Conversation so far:
+${transcript || 'No previous context.'}
+
+New user message:
+${prompt}
+
+Reply helpfully in the correct mode.`)
+  } catch {
+    return `${mode === 'practitioner' ? 'Practitioner' : mode === 'student' ? 'Student' : 'Patient'} mode fallback response:\n\n${prompt}\n\nLive Gemini is unavailable right now. Check that your Google AI Studio Gemini API key is valid and that it has access to ${GEMINI_MODEL}.`
+  }
 }
 
 export async function triageWithGemini(input: { complaint: string; age: string; symptoms: string }) {
@@ -172,7 +177,7 @@ export async function analyzeXray(base64: string, mimeType: string): Promise<Xra
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL })
     const result = await model.generateContent([
       'Return dental xray interpretation JSON only: {"imagingType":"...","quality":"...","urgency":"EMERGENCY|URGENT|ROUTINE","interpretation":"...","findings":[{"title":"...","detail":"..."}],"nextSteps":["..."]}',
       {

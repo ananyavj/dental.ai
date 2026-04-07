@@ -18,6 +18,7 @@ const navByRole: Record<Role, Array<{ to: string; label: string; icon: React.Com
   student: [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/chat', label: 'Chatbot', icon: MessageSquare },
+    { to: '/patients', label: 'Patient Directory', icon: Users },
     { to: '/discover', label: 'Discover', icon: BookOpen },
     { to: '/exam', label: 'Exam Mode', icon: ClipboardList },
     { to: '/dental-tv', label: 'Dental TV', icon: MonitorPlay },

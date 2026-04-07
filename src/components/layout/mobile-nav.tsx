@@ -14,8 +14,9 @@ const itemsByRole: Record<Role, Array<{ to: string; label: string; icon: React.C
   student: [
     { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
     { to: '/chat', label: 'Chat', icon: MessageSquare },
+    { to: '/patients', label: 'Patients', icon: Users },
     { to: '/discover', label: 'Discover', icon: BookOpen },
-    { to: '/exam', label: 'Exam', icon: Users },
+    { to: '/exam', label: 'Exam', icon: MessageSquare },
     { to: '/settings', label: 'Settings', icon: Settings },
   ],
   patient: [

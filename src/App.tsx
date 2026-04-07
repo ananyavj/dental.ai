@@ -63,7 +63,7 @@ export default function App() {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/chat" element={<LazyPage><ChatbotPage /></LazyPage>} />
-        <Route path="/patients" element={<ProtectedRoute allowedRoles={['doctor']}><PatientsPage /></ProtectedRoute>} />
+        <Route path="/patients" element={<ProtectedRoute allowedRoles={['doctor', 'student', 'admin']}><PatientsPage /></ProtectedRoute>} />
         <Route path="/discover" element={<LazyPage><DiscoverPage /></LazyPage>} />
         <Route path="/discover/case-studies/new" element={<ProtectedRoute allowedRoles={['doctor']}><LazyPage><CaseStudyEditorPage /></LazyPage></ProtectedRoute>} />
         <Route path="/discover/case-studies/:caseStudyId" element={<LazyPage><CaseStudyDetailPage /></LazyPage>} />

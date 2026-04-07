@@ -43,6 +43,9 @@ export interface Appointment {
   duration_minutes: number
   type: string
   status: string
+  patient_name?: string | null
+  contact_number?: string | null
+  clinic_location?: string | null
   notes?: string | null
 }
 
@@ -102,12 +105,16 @@ export interface CaseStudy {
   title: string
   authorName: string
   authorId?: string | null
+  authorRole?: Role | 'guest'
   specialty: string
   summary: string
   content: string
   views: number
   helpfulCount: number
   publishedAt: string
+  contentType?: 'case_study' | 'study_guide' | 'workflow'
+  coverImage?: string
+  readTime?: string
 }
 
 export interface TriageResult {
@@ -148,4 +155,17 @@ export interface ExamQuestion {
   options: string[]
   answer: string
   explanation: string
+}
+
+export interface VideoItem {
+  id: string
+  title: string
+  channel: string
+  specialty: string
+  duration: string
+  views: string
+  thumbnailUrl: string
+  videoUrl: string
+  playlist: string
+  topic: string
 }

@@ -6,17 +6,18 @@ import { Button } from '../components/ui/button'
 import { PageHeader } from '../components/common/page-header'
 import { useAuth } from '../contexts/auth-context'
 import { getDashboardData } from '../lib/data-client'
+import { demoAppointments, demoAudit, demoCases, demoConversations, demoMetrics } from '../lib/mock'
 import { formatDateTime } from '../lib/utils'
 import type { Appointment, AuditEvent, Conversation, MetricCardData, PatientCase } from '../types'
 
 export function DashboardPage() {
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const [metrics, setMetrics] = useState<MetricCardData[]>([])
-  const [cases, setCases] = useState<PatientCase[]>([])
-  const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [activity, setActivity] = useState<AuditEvent[]>([])
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [metrics, setMetrics] = useState<MetricCardData[]>(demoMetrics)
+  const [cases, setCases] = useState<PatientCase[]>(demoCases)
+  const [appointments, setAppointments] = useState<Appointment[]>(demoAppointments)
+  const [activity, setActivity] = useState<AuditEvent[]>(demoAudit)
+  const [conversations, setConversations] = useState<Conversation[]>(demoConversations)
 
   useEffect(() => {
     void getDashboardData(profile).then(data => {
@@ -85,6 +86,7 @@ export function DashboardPage() {
               {appointments.map(item => (
                 <div key={item.id} className="rounded-xl border border-border p-4">
                   <p className="font-medium">{item.type}</p>
+                  <p className="mt-1 text-sm text-foreground">{item.patient_name || 'Patient'}{item.clinic_location ? ` • ${item.clinic_location}` : ''}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(item.appointment_date)}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{item.notes}</p>
                 </div>
