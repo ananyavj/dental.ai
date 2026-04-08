@@ -39,10 +39,11 @@ app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(tools.router, prefix="/api/tools", tags=["Tools"])
 app.include_router(rag.router, prefix="/api/rag", tags=["RAG"])
 
-from app.routers import admin, triage
+from app.routers import admin, triage, detection
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(triage.router, prefix="/api/triage", tags=["Triage"])
+app.include_router(detection.router, prefix="/api/detect", tags=["Detection"])
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "healthy", "version": "2.0.0"}
+    return {"status": "healthy", "version": "2.0.0"} 
