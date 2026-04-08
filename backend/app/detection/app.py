@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File
 from ultralytics import YOLO
+from model import best
 from PIL import Image
 import io
 import uvicorn
@@ -8,7 +9,7 @@ import base64
 import numpy as np
 
 app = FastAPI()
-model = YOLO("yolov8n.pt") # Ensure your path is correct
+model = YOLO("best") # Ensure your path is correct
 
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
