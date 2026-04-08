@@ -76,3 +76,4 @@ Open the Vite URL printed in the terminal, usually `http://localhost:5173`.
 - `npm run lint`
 
 Both pass on the lightweight Vite rebuild.
+# dental-ai
