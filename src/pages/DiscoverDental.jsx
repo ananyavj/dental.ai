@@ -32,7 +32,6 @@ const CONFERENCES = [
 export default function DiscoverDental() {
   const [filter, setFilter] = useState('All')
   const [search, setSearch] = useState('')
-  const [reviewMode, setReviewMode] = useState(false)
   const [reviewInput, setReviewInput] = useState('')
   const [reviewResult, setReviewResult] = useState(null)
   const [reviewLoading, setReviewLoading] = useState(false)
@@ -125,7 +124,7 @@ Be concise and clinically focused.`
                   </div>
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t border-dental-border">
                     <button
-                      onClick={() => { setReviewMode(true); setReviewInput(article.title + (article.doi ? ` DOI: ${article.doi}` : '')) }}
+                      onClick={() => { setReviewInput(article.title + (article.doi ? ` DOI: ${article.doi}` : '')) }}
                       className="btn-secondary text-[10px] py-1 px-2.5"
                     >
                       AI Review

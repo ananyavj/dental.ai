@@ -1,15 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Dashboard from './pages/Dashboard'
-import SpecialtyAIs from './pages/SpecialtyAIs'
-import XrayAnalysis from './pages/XrayAnalysis'
-import DrugReference from './pages/DrugReference'
-import DentalTV from './pages/DentalTV'
-import DiscoverDental from './pages/DiscoverDental'
-import ReferralBuilder from './pages/ReferralBuilder'
-import TreatmentPlan from './pages/TreatmentPlan'
-import AuditTrail from './pages/AuditTrail'
-import PeerReview from './pages/PeerReview'
-import PatientCases from './pages/PatientCases'
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import SpecialtyAIs from "./pages/SpecialtyAIs";
+import XrayAnalysis from "./pages/XrayAnalysis";
+import DrugReference from "./pages/DrugReference";
+import DentalTV from "./pages/DentalTV";
+import DiscoverDental from "./pages/DiscoverDental";
+import ReferralBuilder from "./pages/ReferralBuilder";
+import TreatmentPlan from "./pages/TreatmentPlan";
+import AuditTrail from "./pages/AuditTrail";
+import PeerReview from "./pages/PeerReview";
+import PatientCases from "./pages/PatientCases";
+import CaseDetail from "./pages/CaseDetail";
 
 function App() {
   return (
@@ -27,10 +28,11 @@ function App() {
         <Route path="/audit" element={<AuditTrail />} />
         <Route path="/peer-review" element={<PeerReview />} />
         <Route path="/cases" element={<PatientCases />} />
+        <Route path="/cases/:caseId" element={<CaseDetail />} />
         <Route path="*" element={<Navigate to="/workspace" replace />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
