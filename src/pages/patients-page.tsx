@@ -112,33 +112,43 @@ export function PatientsPage() {
     return [...caseEntries, ...planEntries];
   }, [cases, filteredCases, savedPlans, search, selectedId, selectedPlanId]);
 
-  const selectedCase = selectedPlanId
-    ? null
-    : (filteredCases.find((item) => item.id === selectedId) ??
-      filteredCases[0] ??
-      null);
   const selectedPlan = selectedPlanId
     ? (savedPlans.find((item) => item.id === selectedPlanId) ?? null)
     : null;
+  const selectedCase =
+    filteredCases.find((item) => item.id === selectedId) ??
+    filteredCases[0] ??
+    null;
+  const selectedPlanCase = selectedPlan
+    ? (cases.find(
+        (item) =>
+          item.patient_name.trim().toLowerCase() ===
+          selectedPlan.patient_name.trim().toLowerCase(),
+      ) ?? null)
+    : null;
+  const activeCase = selectedPlanCase ?? selectedCase;
 
   useEffect(() => {
-    if (!selectedCase) return;
+    if (!activeCase) return;
     setTriageInput({
-      complaint: selectedCase.chief_complaint,
-      age: String(selectedCase.age),
+      complaint:
+        selectedPlan && !selectedPlanCase
+          ? selectedPlan.patient_name
+          : activeCase.chief_complaint,
+      age: String(activeCase.age),
       symptoms: "",
     });
-  }, [selectedCase]);
+  }, [activeCase, selectedPlan, selectedPlanCase]);
 
   useEffect(() => {
-    if (!selectedCase) return;
-    void getPatientHistory(selectedCase.patient_id, selectedCase.id).then(
+    if (!activeCase) return;
+    void getPatientHistory(activeCase.patient_id, activeCase.id).then(
       (data) => {
         setAppointments(data.appointments);
         setHistory(data.events);
       },
     );
-  }, [selectedCase]);
+  }, [activeCase]);
 
   useEffect(() => {
     void getSavedTreatmentPlans(profile).then(setSavedPlans);
@@ -175,14 +185,17 @@ export function PatientsPage() {
   }
 
   async function handleTriage() {
-    if (!selectedCase || !profile) return;
+    if (!profile || (!activeCase && !selectedPlan)) return;
     setTriageLoading(true);
     const result = await triageWithGemini(triageInput);
     setTriageResult(result);
+    const patientId = activeCase?.patient_id || selectedPlan?.id || "";
+    const patientName =
+      activeCase?.patient_name || selectedPlan?.patient_name || "Patient";
     await saveTriage(profile, {
-      patientId: selectedCase.patient_id || "",
-      caseId: selectedCase.id,
-      note: `Complaint: ${triageInput.complaint}\nSymptoms: ${triageInput.symptoms || "None recorded"}\nAI triage: ${result.severity}\nReason: ${result.triageReason}`,
+      patientId,
+      caseId: activeCase?.id,
+      note: `Patient: ${patientName}\nComplaint: ${triageInput.complaint}\nSymptoms: ${triageInput.symptoms || "None recorded"}\nAI triage: ${result.severity}\nReason: ${result.triageReason}`,
       triage: result,
     });
     const suggestion = suggestAppointment(result.severity);
@@ -197,20 +210,29 @@ export function PatientsPage() {
   }
 
   async function handleAppointmentSave() {
-    if (!selectedCase || !profile || !appointmentForm.appointmentDate) return;
+    if (
+      !profile ||
+      !appointmentForm.appointmentDate ||
+      (!activeCase && !selectedPlan)
+    )
+      return;
     setSavingAppointment(true);
     const appointment = await scheduleAppointmentFromTriage(profile, {
-      patientId: selectedCase.patient_id || "",
-      patientName: selectedCase.patient_name,
+      patientId: activeCase?.patient_id || selectedPlan?.id || "",
+      patientName:
+        activeCase?.patient_name || selectedPlan?.patient_name || "Patient",
       appointmentDate: new Date(appointmentForm.appointmentDate).toISOString(),
       appointmentType: appointmentForm.appointmentType,
       durationMinutes: Number(appointmentForm.durationMinutes),
       clinicLocation: appointmentForm.clinicLocation,
-      complaint: triageInput.complaint || selectedCase.chief_complaint,
-      severity: (triageResult?.severity || selectedCase.severity) as
-        | "EMERGENCY"
-        | "URGENT"
-        | "ROUTINE",
+      complaint:
+        triageInput.complaint ||
+        activeCase?.chief_complaint ||
+        selectedPlan?.patient_name ||
+        "Treatment plan review",
+      severity: (triageResult?.severity ||
+        activeCase?.severity ||
+        "ROUTINE") as "EMERGENCY" | "URGENT" | "ROUTINE",
     });
     setAppointments((current) => [appointment, ...current]);
     setSavingAppointment(false);
@@ -245,7 +267,7 @@ export function PatientsPage() {
                       setSelectedPlanId(item.id);
                     }
                   }}
-                  className={`w-full rounded-xl border p-4 text-left transition ${item.isSelected ? "border-primary bg-primary/5" : item.kind === "plan" ? "border-emerald-200 bg-emerald-50/40" : "border-border bg-card"}`}
+                  className={`w-full rounded-xl border p-4 text-left transition ${item.isSelected ? "border-primary bg-primary/5" : "border-border bg-card"}`}
                 >
                   <div className="flex items-center gap-2">
                     <p className="font-medium">{item.patientName}</p>
@@ -332,7 +354,9 @@ export function PatientsPage() {
               <Button
                 className="w-full"
                 disabled={
-                  triageLoading || !triageInput.complaint || !selectedCase
+                  triageLoading ||
+                  !triageInput.complaint ||
+                  (!activeCase && !selectedPlan)
                 }
                 onClick={handleTriage}
               >
@@ -406,11 +430,10 @@ export function PatientsPage() {
               />
               <Button
                 className="w-full"
-                variant="secondary"
                 disabled={
                   savingAppointment ||
                   !appointmentForm.appointmentDate ||
-                  !selectedCase
+                  (!activeCase && !selectedPlan)
                 }
                 onClick={handleAppointmentSave}
               >

@@ -28,6 +28,7 @@ const CASE_STUDY_DRAFTS = "dental-ai-case-studies";
 const CONVERSATION_DRAFTS = "dental-ai-conversations";
 const APPOINTMENT_DRAFTS = "dental-ai-appointments";
 const TREATMENT_PLAN_DRAFTS = "dental-ai-treatment-plans";
+const TRIAGE_DRAFTS = "dental-ai-triage-sessions";
 
 function parseLocation(notes?: string | null) {
   if (!notes) return null;
@@ -202,23 +203,41 @@ export async function saveTriage(
     };
   },
 ) {
-  if (!supabase) return;
-  await supabase.from("triage_sessions").insert({
+  const draft = {
+    id: crypto.randomUUID(),
     patient_id: payload.patientId,
     doctor_id: profile.id,
-    triage_level: payload.triage.severity,
-    confidence_score: 0.91,
-    reasoning: payload.triage.triageReason,
-    red_flags: payload.triage.redFlags,
-    ai_recommendation: { referralRequired: payload.triage.referralRequired },
-    needs_doctor_review: false,
-  });
+    case_id: payload.caseId || null,
+    note: payload.note || null,
+    triage: payload.triage,
+    created_at: new Date().toISOString(),
+  };
+
+  if (!supabase) {
+    writeStorage(TRIAGE_DRAFTS, [draft, ...readStorage(TRIAGE_DRAFTS, [])]);
+    return;
+  }
+
+  try {
+    await supabase.from("triage_sessions").insert({
+      patient_id: payload.patientId,
+      doctor_id: profile.id,
+      triage_level: payload.triage.severity,
+      confidence_score: 0.91,
+      reasoning: payload.triage.triageReason,
+      red_flags: payload.triage.redFlags,
+      ai_recommendation: { referralRequired: payload.triage.referralRequired },
+      needs_doctor_review: false,
+    });
+  } catch {
+    writeStorage(TRIAGE_DRAFTS, [draft, ...readStorage(TRIAGE_DRAFTS, [])]);
+  }
   await appendAudit(profile, {
     event_type: "triage",
     event_title: `${payload.triage.severity} triage saved`,
     severity: payload.triage.severity as "EMERGENCY" | "URGENT" | "ROUTINE",
   });
-  if (payload.caseId && payload.note) {
+  if (payload.caseId && payload.note && supabase) {
     await supabase.from("clinical_notes").insert({
       case_id: payload.caseId,
       author_id: profile.id,
