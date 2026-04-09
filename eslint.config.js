@@ -12,6 +12,7 @@ export default tseslint.config(
       'backend',
       'node_modules',
       'venv',
+      '.venv',
       'postcss.config.cjs',
       'src/**/*.jsx',
       'src/**/*.js',

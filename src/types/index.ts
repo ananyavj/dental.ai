@@ -124,6 +124,26 @@ export interface TriageResult {
   referralRequired: boolean
 }
 
+export interface DetectionResult {
+  detections: Array<{
+    class_name: string
+    confidence: number
+    bbox: number[]
+  }>
+  annotated_image: string
+}
+
+export interface VisionResult {
+  labels: string[]
+  objects: Array<{
+    name: string
+    score: number
+    bbox: number[]
+  }>
+  text: string
+  interpretation: string
+}
+
 export interface XrayResult {
   imagingType: string
   quality: string
@@ -131,6 +151,8 @@ export interface XrayResult {
   interpretation: string
   findings: Array<{ title: string; detail: string }>
   nextSteps: string[]
+  detection?: DetectionResult
+  vision?: VisionResult
 }
 
 export interface TreatmentPlanResult {
