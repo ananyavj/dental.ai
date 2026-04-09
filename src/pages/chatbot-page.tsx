@@ -1,179 +1,364 @@
-import { Bot, GraduationCap, MessageSquarePlus, Send, Stethoscope, UserRound } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import toast from 'react-hot-toast'
-import { Button } from '../components/ui/button'
-import { Card, CardContent } from '../components/ui/card'
-import { Input } from '../components/ui/input'
-import { PageHeader } from '../components/common/page-header'
-import { useAuth } from '../contexts/auth-context'
-import { getChatConversations, upsertConversation } from '../lib/data-client'
-import { chatWithGemini } from '../lib/gemini'
-import { formatDateTime } from '../lib/utils'
-import type { ChatMode, Conversation, ConversationMessage } from '../types'
+import {
+  Bot,
+  GraduationCap,
+  MessageSquarePlus,
+  Send,
+  Stethoscope,
+  UserRound,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
+import toast from "react-hot-toast";
+import { Button } from "../components/ui/button";
+import { Card, CardContent } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { PageHeader } from "../components/common/page-header";
+import { useAuth } from "../contexts/auth-context";
+import { getChatConversations, upsertConversation } from "../lib/data-client";
+import { chatWithGemini } from "../lib/gemini";
+import { formatDateTime } from "../lib/utils";
+import type { ChatMode, Conversation, ConversationMessage } from "../types";
 
 type ChatLocationState = {
-  mode?: ChatMode
-  title?: string
-  prompt?: string
-}
+  mode?: ChatMode;
+  title?: string;
+  prompt?: string;
+};
 
 const modeOptions: Array<{
-  value: ChatMode
-  label: string
-  helper: string
-  icon: React.ComponentType<{ className?: string }>
+  value: ChatMode;
+  label: string;
+  helper: string;
+  icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { value: 'practitioner', label: 'Practitioner', helper: 'Concise chairside guidance', icon: Stethoscope },
-  { value: 'student', label: 'Student', helper: 'Exam-first explanations', icon: GraduationCap },
-  { value: 'patient', label: 'Patient', helper: 'Plain-language education', icon: UserRound },
-]
+  {
+    value: "practitioner",
+    label: "Practitioner",
+    helper: "Concise chairside guidance",
+    icon: Stethoscope,
+  },
+  {
+    value: "student",
+    label: "Student",
+    helper: "Exam-first explanations",
+    icon: GraduationCap,
+  },
+  {
+    value: "patient",
+    label: "Patient",
+    helper: "Plain-language education",
+    icon: UserRound,
+  },
+];
 
 function emptyConversation(mode: ChatMode): Conversation {
   return {
     id: crypto.randomUUID(),
-    title: mode === 'practitioner' ? 'New practitioner chat' : mode === 'student' ? 'New student chat' : 'New patient guide chat',
-    mode: mode === 'practitioner' ? 'Practitioner' : mode === 'student' ? 'Student' : 'Patient',
+    title:
+      mode === "practitioner"
+        ? "New practitioner chat"
+        : mode === "student"
+          ? "New student chat"
+          : "New patient guide chat",
+    mode:
+      mode === "practitioner"
+        ? "Practitioner"
+        : mode === "student"
+          ? "Student"
+          : "Patient",
     updated_at: new Date().toISOString(),
     messages: [],
-  }
+  };
 }
 
 function resolveDefaultMode(role?: string | null): ChatMode {
-  if (role === 'student') return 'student'
-  if (role === 'patient') return 'patient'
-  return 'practitioner'
+  if (role === "student") return "student";
+  if (role === "patient") return "patient";
+  return "practitioner";
 }
 
-function MessageContent({ role, content }: { role: 'user' | 'assistant'; content: string }) {
-  if (role === 'user') {
-    return <p className="whitespace-pre-wrap text-sm leading-6">{content}</p>
+function renderInlineMarkdown(text: string) {
+  const nodes: React.ReactNode[] = [];
+  const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  let lastIndex = 0;
+  let key = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    const token = match[0];
+    const start = match.index ?? 0;
+
+    if (start > lastIndex) {
+      nodes.push(text.slice(lastIndex, start));
+    }
+
+    if (token.startsWith("**") && token.endsWith("**")) {
+      nodes.push(<strong key={`md-${key++}`}>{token.slice(2, -2)}</strong>);
+    } else if (token.startsWith("*") && token.endsWith("*")) {
+      nodes.push(<em key={`md-${key++}`}>{token.slice(1, -1)}</em>);
+    } else if (token.startsWith("`") && token.endsWith("`")) {
+      nodes.push(
+        <code
+          key={`md-${key++}`}
+          className="rounded bg-foreground/10 px-1 py-0.5 text-[0.85em]"
+        >
+          {token.slice(1, -1)}
+        </code>,
+      );
+    }
+
+    lastIndex = start + token.length;
   }
 
-  return (
-    <div className="rich-prose">
-      {content.split('\n').map((line, index) => (
-        <p key={index}>{line}</p>
-      ))}
-    </div>
-  )
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
+}
+
+function renderAssistantContent(content: string) {
+  const lines = content.split("\n");
+  const blocks: React.ReactNode[] = [];
+  let bulletItems: string[] = [];
+  let orderedItems: string[] = [];
+
+  const flushLists = (seed: number) => {
+    let key = seed;
+    if (bulletItems.length) {
+      blocks.push(
+        <ul
+          key={`ul-${key++}`}
+          className="list-disc space-y-1 pl-5 text-sm leading-6"
+        >
+          {bulletItems.map((item, i) => (
+            <li key={`bul-${i}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ul>,
+      );
+      bulletItems = [];
+    }
+
+    if (orderedItems.length) {
+      blocks.push(
+        <ol
+          key={`ol-${key++}`}
+          className="list-decimal space-y-1 pl-5 text-sm leading-6"
+        >
+          {orderedItems.map((item, i) => (
+            <li key={`ord-${i}`}>{renderInlineMarkdown(item)}</li>
+          ))}
+        </ol>,
+      );
+      orderedItems = [];
+    }
+
+    return key;
+  };
+
+  let key = 0;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      key = flushLists(key);
+      blocks.push(<div key={`sp-${key++}`} className="h-1" />);
+      continue;
+    }
+
+    const headingMatch = line.match(/^#{1,3}\s+(.*)$/);
+    if (headingMatch) {
+      key = flushLists(key);
+      blocks.push(
+        <p key={`h-${key++}`} className="text-sm font-semibold leading-6">
+          {renderInlineMarkdown(headingMatch[1])}
+        </p>,
+      );
+      continue;
+    }
+
+    if (/^[-*•]\s+/.test(line)) {
+      orderedItems = orderedItems.length ? [] : orderedItems;
+      bulletItems.push(line.replace(/^[-*•]\s+/, ""));
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(line)) {
+      bulletItems = bulletItems.length ? [] : bulletItems;
+      orderedItems.push(line.replace(/^\d+\.\s+/, ""));
+      continue;
+    }
+
+    key = flushLists(key);
+    blocks.push(
+      <p key={`p-${key++}`} className="text-sm leading-6">
+        {renderInlineMarkdown(line)}
+      </p>,
+    );
+  }
+
+  flushLists(key);
+
+  return blocks;
+}
+
+function MessageContent({
+  role,
+  content,
+}: {
+  role: "user" | "assistant";
+  content: string;
+}) {
+  if (role === "user") {
+    return <p className="whitespace-pre-wrap text-sm leading-6">{content}</p>;
+  }
+
+  return <div className="space-y-1.5">{renderAssistantContent(content)}</div>;
 }
 
 export default function ChatbotPage() {
-  const { profile } = useAuth()
-  const location = useLocation()
-  const state = (location.state || {}) as ChatLocationState
-  const [mode, setMode] = useState<ChatMode>(() => state.mode || resolveDefaultMode(profile?.role))
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [activeId, setActiveId] = useState<string>('')
-  const [message, setMessage] = useState('')
-  const [sending, setSending] = useState(false)
-  const hydratedRef = useRef(false)
-  const consumeStateRef = useRef(false)
+  const { profile } = useAuth();
+  const location = useLocation();
+  const state = (location.state || {}) as ChatLocationState;
+  const [mode, setMode] = useState<ChatMode>(
+    () => state.mode || resolveDefaultMode(profile?.role),
+  );
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeId, setActiveId] = useState<string>("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const hydratedRef = useRef(false);
+  const consumeStateRef = useRef(false);
 
   useEffect(() => {
-    setMode(state.mode || resolveDefaultMode(profile?.role))
-  }, [profile?.role, state.mode])
+    setMode(state.mode || resolveDefaultMode(profile?.role));
+  }, [profile?.role, state.mode]);
 
   useEffect(() => {
-    if (!profile) return
-    void getChatConversations(profile).then(items => {
-      setConversations(items)
-      setActiveId(current => current || items[0]?.id || emptyConversation(resolveDefaultMode(profile.role)).id)
-      hydratedRef.current = true
-    })
-  }, [profile])
+    if (!profile) return;
+    void getChatConversations(profile).then((items) => {
+      setConversations(items);
+      setActiveId(
+        (current) =>
+          current ||
+          items[0]?.id ||
+          emptyConversation(resolveDefaultMode(profile.role)).id,
+      );
+      hydratedRef.current = true;
+    });
+  }, [profile]);
 
   const activeConversation = useMemo(() => {
-    const existing = conversations.find(item => item.id === activeId)
-    if (existing) return existing
-    return conversations[0] ?? emptyConversation(mode)
-  }, [activeId, conversations, mode])
+    const existing = conversations.find((item) => item.id === activeId);
+    if (existing) return existing;
+    return conversations[0] ?? emptyConversation(mode);
+  }, [activeId, conversations, mode]);
 
-  const persistConversation = useCallback(async (conversation: Conversation, messages: ConversationMessage[]) => {
-    if (!profile) return
-    const nextConversation = {
-      ...conversation,
-      mode: mode === 'practitioner' ? 'Practitioner' : mode === 'student' ? 'Student' : 'Patient',
-      updated_at: new Date().toISOString(),
-      messages,
-    }
-    setConversations(current => [nextConversation, ...current.filter(item => item.id !== conversation.id)])
-    setActiveId(conversation.id)
-    await upsertConversation(profile, nextConversation, messages)
-  }, [mode, profile])
+  const persistConversation = useCallback(
+    async (conversation: Conversation, messages: ConversationMessage[]) => {
+      if (!profile) return;
+      const nextConversation = {
+        ...conversation,
+        mode:
+          mode === "practitioner"
+            ? "Practitioner"
+            : mode === "student"
+              ? "Student"
+              : "Patient",
+        updated_at: new Date().toISOString(),
+        messages,
+      };
+      setConversations((current) => [
+        nextConversation,
+        ...current.filter((item) => item.id !== conversation.id),
+      ]);
+      setActiveId(conversation.id);
+      await upsertConversation(profile, nextConversation, messages);
+    },
+    [mode, profile],
+  );
 
-  const sendPrompt = useCallback(async (prompt: string, seededTitle?: string, targetConversation?: Conversation) => {
-    if (!profile || !prompt.trim()) return
-    setSending(true)
+  const sendPrompt = useCallback(
+    async (
+      prompt: string,
+      seededTitle?: string,
+      targetConversation?: Conversation,
+    ) => {
+      if (!profile || !prompt.trim()) return;
+      setSending(true);
 
-    const baseConversation =
-      targetConversation ??
-      conversations.find(item => item.id === activeId) ??
-      {
-        ...emptyConversation(mode),
-        id: activeId || crypto.randomUUID(),
-        title: seededTitle || prompt.slice(0, 50),
-      }
+      const baseConversation = targetConversation ??
+        conversations.find((item) => item.id === activeId) ?? {
+          ...emptyConversation(mode),
+          id: activeId || crypto.randomUUID(),
+          title: seededTitle || prompt.slice(0, 50),
+        };
 
-    const nextMessages: ConversationMessage[] = [
-      ...(baseConversation.messages || []),
-      {
-        id: crypto.randomUUID(),
-        role: 'user',
-        content: prompt.trim(),
-        created_at: new Date().toISOString(),
-      },
-    ]
-
-    await persistConversation(
-      {
-        ...baseConversation,
-        title: seededTitle || baseConversation.title || prompt.slice(0, 50),
-      },
-      nextMessages
-    )
-
-    try {
-      const reply = await chatWithGemini(
-        mode,
-        prompt,
-        nextMessages.map(item => ({ role: item.role, content: item.content }))
-      )
-      const fullMessages = [
-        ...nextMessages,
+      const nextMessages: ConversationMessage[] = [
+        ...(baseConversation.messages || []),
         {
           id: crypto.randomUUID(),
-          role: 'assistant' as const,
-          content: reply,
+          role: "user",
+          content: prompt.trim(),
           created_at: new Date().toISOString(),
         },
-      ]
+      ];
+
       await persistConversation(
         {
           ...baseConversation,
           title: seededTitle || baseConversation.title || prompt.slice(0, 50),
         },
-        fullMessages
-      )
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to send message')
-    } finally {
-      setSending(false)
-      setMessage('')
-    }
-  }, [activeId, conversations, mode, persistConversation, profile])
+        nextMessages,
+      );
+
+      try {
+        const reply = await chatWithGemini(
+          mode,
+          prompt,
+          nextMessages.map((item) => ({
+            role: item.role,
+            content: item.content,
+          })),
+        );
+        const fullMessages = [
+          ...nextMessages,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant" as const,
+            content: reply,
+            created_at: new Date().toISOString(),
+          },
+        ];
+        await persistConversation(
+          {
+            ...baseConversation,
+            title: seededTitle || baseConversation.title || prompt.slice(0, 50),
+          },
+          fullMessages,
+        );
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Unable to send message",
+        );
+      } finally {
+        setSending(false);
+        setMessage("");
+      }
+    },
+    [activeId, conversations, mode, persistConversation, profile],
+  );
 
   useEffect(() => {
-    if (!hydratedRef.current || consumeStateRef.current || !state.prompt) return
-    consumeStateRef.current = true
-    const title = state.title || state.prompt.slice(0, 60)
-    const seeded = emptyConversation(state.mode || mode)
-    setMode(state.mode || mode)
-    setActiveId(seeded.id)
-    setConversations(current => [seeded, ...current])
-    void sendPrompt(state.prompt, title, seeded)
-  }, [mode, sendPrompt, state.mode, state.prompt, state.title])
+    if (!hydratedRef.current || consumeStateRef.current || !state.prompt)
+      return;
+    consumeStateRef.current = true;
+    const title = state.title || state.prompt.slice(0, 60);
+    const seeded = emptyConversation(state.mode || mode);
+    setMode(state.mode || mode);
+    setActiveId(seeded.id);
+    setConversations((current) => [seeded, ...current]);
+    void sendPrompt(state.prompt, title, seeded);
+  }, [mode, sendPrompt, state.mode, state.prompt, state.title]);
 
   return (
     <div className="space-y-6">
@@ -185,9 +370,9 @@ export default function ChatbotPage() {
           <Button
             variant="secondary"
             onClick={() => {
-              const draft = emptyConversation(mode)
-              setConversations(current => [draft, ...current])
-              setActiveId(draft.id)
+              const draft = emptyConversation(mode);
+              setConversations((current) => [draft, ...current]);
+              setActiveId(draft.id);
             }}
           >
             <MessageSquarePlus className="h-4 w-4" /> New chat
@@ -199,13 +384,15 @@ export default function ChatbotPage() {
         <Card className="overflow-hidden">
           <CardContent className="space-y-4 p-4">
             <div className="grid gap-2">
-              {modeOptions.map(option => (
+              {modeOptions.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   onClick={() => setMode(option.value)}
                   className={`rounded-2xl border p-3 text-left transition duration-150 ${
-                    mode === option.value ? 'border-primary bg-primary/8 text-foreground' : 'border-border bg-muted/30 text-muted-foreground'
+                    mode === option.value
+                      ? "border-primary bg-primary/8 text-foreground"
+                      : "border-border bg-muted/30 text-muted-foreground"
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -218,17 +405,23 @@ export default function ChatbotPage() {
             </div>
 
             <div className="space-y-2 border-t border-border pt-4">
-              {conversations.map(item => (
+              {conversations.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setActiveId(item.id)}
                   className={`w-full rounded-2xl border p-3 text-left transition duration-150 ${
-                    activeConversation.id === item.id ? 'border-primary bg-primary/8' : 'border-border bg-card'
+                    activeConversation.id === item.id
+                      ? "border-primary bg-primary/8"
+                      : "border-border bg-card"
                   }`}
                 >
-                  <p className="line-clamp-2 text-sm font-medium">{item.title}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{item.mode} • {formatDateTime(item.updated_at)}</p>
+                  <p className="line-clamp-2 text-sm font-medium">
+                    {item.title}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {item.mode} • {formatDateTime(item.updated_at)}
+                  </p>
                 </button>
               ))}
             </div>
@@ -238,22 +431,33 @@ export default function ChatbotPage() {
         <Card className="overflow-hidden">
           <CardContent className="flex min-h-[70vh] flex-col p-0">
             <div className="border-b border-border px-5 py-4">
-              <p className="text-sm font-semibold">{activeConversation.title}</p>
+              <p className="text-sm font-semibold">
+                {activeConversation.title}
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {mode === 'practitioner' ? 'Clinical co-pilot' : mode === 'student' ? 'Exam and viva support' : 'Patient-friendly guidance'}
+                {mode === "practitioner"
+                  ? "Clinical co-pilot"
+                  : mode === "student"
+                    ? "Exam and viva support"
+                    : "Patient-friendly guidance"}
               </p>
             </div>
 
             <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5">
               {(activeConversation.messages || []).length ? (
-                (activeConversation.messages || []).map(item => (
-                  <div key={item.id} className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-3xl rounded-2xl px-4 py-3 ${
-                      item.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'border border-border bg-muted/30 text-foreground'
-                    }`}>
-                      {item.role === 'assistant' ? (
+                (activeConversation.messages || []).map((item) => (
+                  <div
+                    key={item.id}
+                    className={`flex ${item.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-3xl rounded-2xl px-4 py-3 ${
+                        item.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-border bg-muted/30 text-foreground"
+                      }`}
+                    >
+                      {item.role === "assistant" ? (
                         <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
                           <Bot className="h-3.5 w-3.5" />
                           dental.ai
@@ -269,9 +473,12 @@ export default function ChatbotPage() {
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       <Bot className="h-5 w-5" />
                     </div>
-                    <p className="text-lg font-semibold">Start a fast new conversation</p>
+                    <p className="text-lg font-semibold">
+                      Start a fast new conversation
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      Ask a chairside question, revise for exams, or explain something simply for a patient.
+                      Ask a chairside question, revise for exams, or explain
+                      something simply for a patient.
                     </p>
                   </div>
                 </div>
@@ -288,19 +495,27 @@ export default function ChatbotPage() {
 
             <form
               className="border-t border-border px-5 py-4"
-              onSubmit={event => {
-                event.preventDefault()
-                void sendPrompt(message)
+              onSubmit={(event) => {
+                event.preventDefault();
+                void sendPrompt(message);
               }}
             >
               <div className="flex items-end gap-3">
                 <Input
                   value={message}
-                  onChange={event => setMessage(event.target.value)}
-                  placeholder={mode === 'student' ? 'Ask for a concise exam explanation...' : 'Ask dental.ai anything...'}
+                  onChange={(event) => setMessage(event.target.value)}
+                  placeholder={
+                    mode === "student"
+                      ? "Ask for a concise exam explanation..."
+                      : "Ask dental.ai anything..."
+                  }
                   className="h-12"
                 />
-                <Button type="submit" size="icon" disabled={sending || !message.trim()}>
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={sending || !message.trim()}
+                >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
@@ -309,5 +524,5 @@ export default function ChatbotPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
