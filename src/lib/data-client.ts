@@ -11,6 +11,7 @@ import type {
   MetricCardData,
   PatientCase,
   Profile,
+  XrayResult,
 } from '../types'
 
 const CASE_STUDY_DRAFTS = 'dental-ai-case-studies'
@@ -476,7 +477,7 @@ export async function saveTreatmentPlan(profile: Profile, payload: { caseId?: st
   await appendAudit(profile, { event_type: 'treatment_plan', event_title: `Saved treatment plan for ${payload.patientName}`, severity: 'ROUTINE' })
 }
 
-export async function saveXrayReport(profile: Profile, payload: { caseId?: string; fileName: string; imagingType: string; urgency: string; report: unknown }) {
+export async function saveXrayReport(profile: Profile, payload: { caseId?: string; fileName: string; imagingType: string; urgency: string; report: XrayResult | unknown }) {
   if (!supabase) return
   await supabase.from('xray_reports').insert({
     case_id: payload.caseId || null,
